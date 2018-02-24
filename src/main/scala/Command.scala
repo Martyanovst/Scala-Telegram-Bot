@@ -5,4 +5,6 @@ class Command(val args: Array[String],val kwargs: Array[String], commandType: Co
   val Kwargs = kwargs
   val CommandType = commandType
   val IsAdmin = isAdmin
+
+
 }
