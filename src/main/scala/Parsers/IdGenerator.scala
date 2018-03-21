@@ -1,6 +1,6 @@
 package Parsers
 
-object CommandExecutor {
+object IdGenerator {
   private var IdGenerator = 0
 
   def GetId = {
