@@ -2,3 +2,11 @@
 /list
 /delete_poll (1)
 /list
+/create_poll (Do you like tea?)(yes)(afterstop)
+/result (2)
+/start_poll (2)
+/result (2)
+/stop_poll (2)
+/result (2)
+/delete_poll (5)
+/result (5)

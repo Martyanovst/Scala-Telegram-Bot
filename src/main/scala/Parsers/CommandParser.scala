@@ -1,8 +1,10 @@
 package Parsers
 
-import Commands._
-import Old.Question
+import java.util.Date
 
+import Commands.{Question, _}
+
+import scala.util.Try
 import scala.util.parsing.combinator.RegexParsers
 
 class CommandParser extends RegexParsers {
@@ -12,7 +14,7 @@ class CommandParser extends RegexParsers {
     success(IncorrectCommand("incorrrect command"))
 
   def createPoll: Parser[Command] = "/create_poll" ~> anyWord ~ (anonymous | success(true)) ~
-    (visibility | success(true)) ~ (date | "") ~ (date | "") ^^ {
+    (visibility | success(true)) ~ date ~ date ^^ {
     case poll ~ anon ~ vis ~ start ~ stop => CreatePoll(poll, anon, vis, start, stop)
   }
 
@@ -20,6 +22,7 @@ class CommandParser extends RegexParsers {
     "stop_poll" | "result" | "begin" | "delete_question") ~ id ^^ { case commandType ~ id => commandType match {
     case "delete_poll" => DeletePoll(id)
     case "start_poll" => StartPoll(id)
+    case "result" => Result(id)
     case "stop_poll" => StopPoll(id)
     case "begin" => Begin(id)
     case "delete_question" => DeleteQuestion(id)
@@ -47,7 +50,9 @@ class CommandParser extends RegexParsers {
     _.toString == "yes"
   }
 
-  def date: Parser[String] = "(" ~> "\\d{2}:\\d{2}:\\d{2} \\d{2}:\\d{2}:\\d{2}".r <~ ")" ^^ (_.toString)
+  def date: Parser[Option[Date]] = ("(" ~> "\\d{2}:\\d{2}:\\d{2} \\d{2}:\\d{2}:\\d{2}".r <~ ")" | "".r) ^^ {
+    date => Try(dateParser.parse(date)).toOption
+  }
 
   def visibility: Parser[Boolean] = "(" ~> ("afterstop" | "continuous") <~ ")" ^^ {
     _.toString == "afterstop"
