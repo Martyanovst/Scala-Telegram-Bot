@@ -1,10 +1,7 @@
 package Parsers
 
 object IdGenerator {
-  private var IdGenerator = 0
+  private val IdGenerator = Stream.from(1).iterator
 
-  def GetId = {
-    IdGenerator += 1
-    IdGenerator
-  }
+  def GetId = IdGenerator.next()
 }
