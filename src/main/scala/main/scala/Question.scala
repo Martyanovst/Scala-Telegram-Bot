@@ -1,4 +1,4 @@
-package Commands
+package main.scala
 
 case class Question(text: String, questionType: Question.Value, answers: Array[String]) {
 }
@@ -9,6 +9,7 @@ object Question extends Enumeration {
   def GetValue(text: String): Question.Value = {
     if (text == "choice") Question.choice
     if (text == "multi") Question.multi
-    Question.open
+    else
+      Question.open
   }
 }

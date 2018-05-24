@@ -1,6 +1,4 @@
-package Commands
-
-import main.scala.{Poll, PollRepo}
+package main.scala
 
 import scala.util.Try
 

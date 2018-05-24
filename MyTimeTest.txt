@@ -1,0 +1,5 @@
+/create_poll (Do you like coffee?)(no)(afterstop)(12:05:30 18:03:20)(14:05:30 19:04:20)
+/create_poll (Do you like tea?)(no)(continuous)(12:05:30 18:03:16)(14:05:30 19:04:17)
+/create_poll (XYZ)
+/create_poll (Xew)(12:05:30 18:03:18)
+/stop_poll (3)

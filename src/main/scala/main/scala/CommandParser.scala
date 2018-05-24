@@ -1,8 +1,6 @@
-package Parsers
+package main.scala
 
 import java.util.Date
-
-import Commands.{Question, _}
 
 import scala.util.Try
 import scala.util.parsing.combinator.RegexParsers
@@ -30,8 +28,8 @@ class CommandParser extends RegexParsers {
   }
 
   def commandsWithoutArgs: Parser[Command] = "/" ~> ("list" | "end" | "view") ^^ {
-    case "list" => new Listing()
-    case "end" => new End()
+    case "list" => Listing()
+    case "end" => End()
     case "view" => new View()
   }
 

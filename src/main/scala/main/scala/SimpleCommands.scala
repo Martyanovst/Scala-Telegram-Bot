@@ -1,12 +1,10 @@
-package Commands
-
-import main.scala._
+package main.scala
 
 case class DeletePoll(id: Int) extends Command {
   override def execute: PollRepo => (String, PollRepo) = context => ("Success!", PollRepo(context.polls - id))
 }
 
-class Listing extends Command {
+case class Listing() extends Command {
   override def execute: PollRepo => (String, PollRepo) = context =>
     (context.polls.values.map(poll => poll.toString).mkString, context)
 }
@@ -26,18 +24,9 @@ case class StopPoll(id: Int) extends Command {
     (tryExecute(context.polls, id, _.stop), context)
 }
 
-case class Begin(id: Int) extends Command {
-  override def execute: PollRepo => (String, PollRepo) = context => ("Success!", context)
-}
-
 case class DeleteQuestion(id: Int) extends Command {
   override def execute: PollRepo => (String, PollRepo) = { context => ("Success!", context) }
 }
-
-class End extends Command {
-  override def execute: PollRepo => (String, PollRepo) = { context => ("Success!", context) }
-}
-
 
 class View extends Command {
   override def execute: PollRepo => (String, PollRepo) = { context => ("Success!", context) }
