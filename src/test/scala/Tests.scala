@@ -198,6 +198,7 @@ class Tests extends FlatSpec with Matchers {
     val actualQuestions = newRepo.polls(newRepo.currentContextPoll).questions
     actualQuestions should have size 0
   }
+  
 
   "Delete question" should "return error, when question id is wrong" in{
     val (msg, ctx) = CreatePoll("HI") execute PollRepo()
