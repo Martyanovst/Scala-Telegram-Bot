@@ -24,10 +24,6 @@ case class StopPoll(id: Int) extends Command {
     (tryExecute(context.polls, id, _.stop), context)
 }
 
-case class DeleteQuestion(id: Int) extends Command {
-  override def execute: PollRepo => (String, PollRepo) = { context => ("Success!", context) }
-}
-
 case class IncorrectCommand(arg: String) extends Command {
   override def execute: PollRepo => (String, PollRepo) = { context => ("The operation is incorrect", context) }
 }

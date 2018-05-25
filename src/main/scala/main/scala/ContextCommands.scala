@@ -47,3 +47,22 @@ case class AddQuestion(name: String, questionType: Question.Value, answers: Arra
     }
   }
 }
+
+case class DeleteQuestion(id: Integer) extends Command
+{
+  override def execute: PollRepo => (String, PollRepo) = context =>
+  {
+
+    if (context.currentContextPoll == -1)
+      ("Error: Context mode turned off", context)
+    else if (context.polls(context.currentContextPoll).running.getOrElse(false))
+      ("Error: can't change poll when it's running", context)
+    else if (!context.polls(context.currentContextPoll).questions.contains(id))
+      ("Error: Question id wasn't found", context)
+    else {
+      val newContext = context.polls(context.currentContextPoll).deleteQuestion(id)
+      (s"Ok: ${context.currentContextPoll} delete question",
+        PollRepo(context.polls + (context.currentContextPoll -> newContext), context.currentContextPoll))
+    }
+  }
+}
