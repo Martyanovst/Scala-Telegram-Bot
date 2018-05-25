@@ -28,14 +28,6 @@ case class DeleteQuestion(id: Int) extends Command {
   override def execute: PollRepo => (String, PollRepo) = { context => ("Success!", context) }
 }
 
-class View extends Command {
-  override def execute: PollRepo => (String, PollRepo) = { context => ("Success!", context) }
-}
-
 case class IncorrectCommand(arg: String) extends Command {
   override def execute: PollRepo => (String, PollRepo) = { context => ("The operation is incorrect", context) }
-}
-
-case class AddQuestion(name: String, questionType: Question.Value, answers: Array[String]) extends Command {
-  override def execute: PollRepo => (String, PollRepo) = { context => ("Success!", context) }
 }

@@ -1,7 +1,7 @@
 import main.scala._
-import org.scalatest.FlatSpec
+import org.scalatest.{FlatSpec, Matchers}
 
-class Tests extends FlatSpec {
+class Tests extends FlatSpec  with Matchers{
   val dateParser = new java.text.SimpleDateFormat("hh:mm:ss yy:MM:dd")
 
   "After initialization poll repo's map" should "be empty" in {
@@ -114,7 +114,7 @@ class Tests extends FlatSpec {
     val (msg, ctx) = CreatePoll("HI") execute PollRepo()
     val id = msg.split(":")(1).trim.toInt
     val (message, repo) = Begin(id) execute ctx
-    assertResult(s"Ok: switch to poll with number $id")(message)
+    assertResult("Ok: switch to poll with number $id")(message)
     assertResult(repo.currentContextPoll)(id)
   }
 
@@ -122,23 +122,51 @@ class Tests extends FlatSpec {
     val (msg, ctx) = CreatePoll("HI") execute PollRepo()
     val id = msg.split(":")(1).trim.toInt + 1
     val (message, _) = Begin(id) execute ctx
-    assertResult(s"Error: This poll doesn't exist")(message)
+    assertResult("Error: This poll doesn't exist")(message)
   }
 
-  "Poll Repo" should " switch off the context, when repo exists this id" in {
+  "Poll Repo" should "switch off the context, when repo exists this id" in {
     val (msg, ctx1) = CreatePoll("HI") execute PollRepo()
     val id = msg.split(":")(1).trim.toInt
     val (_, ctx2) = Begin(id) execute ctx1
     val (message, repo) = End() execute ctx2
-    assertResult(s"Ok: switch off the context")(message)
+    assertResult("Ok: switch off the context")(message)
     assertResult(repo.currentContextPoll)(-1)
   }
 
-  "Poll Repo" should " not switch off the context, when repo isn't in context mode" in {
+  "Poll Repo" should "not switch off the context, when repo isn't in context mode" in {
     val repo = PollRepo()
     assertResult(repo.currentContextPoll)(-1)
     val (message, actualRepo) = End() execute repo
-    assertResult(s"Error: The context is already switched off")(message)
+    assertResult("Error: The context is already switched off")(message)
     assertResult(actualRepo.currentContextPoll)(-1)
+  }
+
+  "Poll Repo" should "show poll information, when repo is in context mode" in {
+    val (msg, ctx) = CreatePoll("HI") execute PollRepo()
+    val id = msg.split(":")(1).trim.toInt
+    val (_, repo) = Begin(id) execute ctx
+    val (message, _) = View() execute repo
+    assertResult("Ok")(message.split("\n")(0))
+  }
+
+  "Poll Repo" should "not show poll information, when repo isn't in context mode" in {
+    val repo = PollRepo()
+    assertResult(repo.currentContextPoll)(-1)
+    val (message, _) = View() execute repo
+    assertResult("Error: You should select poll to watch the results")(message.split("\n")(0))
+  }
+
+  "Poll Repo" should "add questiion to poll,when repo in context mode" in {
+    val (msg, ctx) = CreatePoll("HI") execute PollRepo()
+    val id = msg.split(":")(1).trim.toInt
+    val (_, context) = Begin(id) execute ctx
+    val (message, repo) = AddQuestion("Who are you?", Question.choice, Array("Tom", "John")) execute context
+    assertResult(s"Ok: Poll number ${repo.currentContextPoll} add new question")(message)
+    val actualQuestions = repo.polls(repo.currentContextPoll).questions
+    actualQuestions should have length 1
+    actualQuestions.head.text shouldBe "Who are you?"
+    actualQuestions.head.questionType shouldBe Question.choice
+    actualQuestions.head.answers shouldBe Array("Tom", "John")
   }
 }

@@ -5,12 +5,13 @@ import java.util.Calendar
 
 case class PollRepo(polls: Map[Int, Poll] = Map[Int, Poll](), currentContextPoll: Int = -1)
 
-class Poll(id: Int, name: String, isAnonymous: Boolean, isAfterstop: Boolean, begin: Option[Date], end: Option[Date]) {
+class Poll(val id: Int, name: String, val isAnonymous: Boolean, val isAfterstop: Boolean,
+           val begin: Option[Date], val end: Option[Date],
+           val questions: List[Question] = List[Question]()) {
   val calendar = Calendar.getInstance()
   val getName = name
   val getId = id
   val dateParser = new java.text.SimpleDateFormat("hh:mm:ss yy:MM:dd")
-  val questions = Map[Int, Question]()
 
   def now: Date = dateParser.parse(dateParser.format(calendar.getTime))
 
@@ -57,6 +58,8 @@ class Poll(id: Int, name: String, isAnonymous: Boolean, isAfterstop: Boolean, be
       else "Error: Poll is already off"
     }
   }
+
+  def addQuestion(question: Question) = new Poll(id, name, isAnonymous, isAfterstop, begin, end, questions :+ question)
 
   override def toString = {
     s"""Poll name : $name
