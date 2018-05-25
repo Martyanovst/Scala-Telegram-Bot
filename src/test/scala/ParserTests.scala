@@ -1,3 +1,5 @@
+import java.text._
+
 import main.scala._
 import org.scalatest._
 
@@ -5,7 +7,7 @@ import scala.util.Try
 
 class ParserTests extends FunSpec with Matchers {
 
-  val dateParser = new java.text.SimpleDateFormat("hh:mm:ss yy:MM:dd")
+  val dateParser = new SimpleDateFormat("hh:mm:ss yy:MM:dd")
   val parser = new CommandParser()
 
   describe("CommandParser") {
@@ -36,6 +38,15 @@ class ParserTests extends FunSpec with Matchers {
       assertResult(command.questionType)(actual.questionType)
       assertResult(command.answers)(actual.answers)
     }
+  }
+
+  it("should parse appending question without answers") {
+    val query = "/add_question (Question)(multi)"
+    val command = AddQuestion("Question", Question.GetValue("multi"), Array())
+    val actual = parser.parse(parser.command, query).get.asInstanceOf[AddQuestion]
+    assertResult(command.name)(actual.name)
+    assertResult(command.questionType)(actual.questionType)
+    assertResult(command.answers)(actual.answers)
   }
 
   it("should parse simple command") {

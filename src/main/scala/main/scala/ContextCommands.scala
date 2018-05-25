@@ -25,16 +25,25 @@ case class View() extends Command {
 }
 
 case class AddQuestion(name: String, questionType: Question.Value, answers: Array[String]) extends Command {
-  override def execute: PollRepo => (String, PollRepo) = { context => {
-    questionType match {
-      case Question.choice => if (answers.isEmpty)
-        ("Error: Can't create poll without variant's of answer in choicea or mode", context)
-      else {
-        val contextPoll = context.polls(context.currentContextPoll).addQuestion(Question(name, questionType, answers))
-        (s"Ok: Poll number ${context.currentContextPoll} add new question",
-          PollRepo(context.polls + (context.currentContextPoll -> contextPoll), context.currentContextPoll))
+  override def execute: PollRepo => (String, PollRepo) = context => {
+    if (context.currentContextPoll == -1) ("Error: you should select poll to add questions", context)
+    else {
+      questionType match {
+        case Question.open => if (answers.nonEmpty)
+          ("Error: Can't create poll with answers in choice mode", context)
+        else {
+          val contextPoll = context.polls(context.currentContextPoll).addQuestion(Question(name, questionType, answers))
+          (s"Ok: Poll number ${context.currentContextPoll} add new question",
+            PollRepo(context.polls + (context.currentContextPoll -> contextPoll), context.currentContextPoll))
+        }
+        case Question.multi | Question.choice => if (answers.isEmpty)
+          ("Error: Can't create poll without answers in multi or choice mode", context)
+        else {
+          val contextPoll = context.polls(context.currentContextPoll).addQuestion(Question(name, questionType, answers))
+          (s"Ok: Poll number ${context.currentContextPoll} add new question",
+            PollRepo(context.polls + (context.currentContextPoll -> contextPoll), context.currentContextPoll))
+        }
       }
     }
-  }
   }
 }

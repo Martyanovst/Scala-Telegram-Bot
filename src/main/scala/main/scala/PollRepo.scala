@@ -7,11 +7,12 @@ case class PollRepo(polls: Map[Int, Poll] = Map[Int, Poll](), currentContextPoll
 
 class Poll(val id: Int, name: String, val isAnonymous: Boolean, val isAfterstop: Boolean,
            val begin: Option[Date], val end: Option[Date],
-           val questions: List[Question] = List[Question]()) {
+           val questions: Map[Int, Question] = Map[Int, Question]()) {
   val calendar = Calendar.getInstance()
   val getName = name
   val getId = id
   val dateParser = new java.text.SimpleDateFormat("hh:mm:ss yy:MM:dd")
+  val questionNumberGenerator = Stream.from(1).toIterator
 
   def now: Date = dateParser.parse(dateParser.format(calendar.getTime))
 
@@ -59,7 +60,8 @@ class Poll(val id: Int, name: String, val isAnonymous: Boolean, val isAfterstop:
     }
   }
 
-  def addQuestion(question: Question) = new Poll(id, name, isAnonymous, isAfterstop, begin, end, questions :+ question)
+  def addQuestion(question: Question) = new Poll(id, name, isAnonymous, isAfterstop, begin, end,
+    questions + (questionNumberGenerator.next() -> question))
 
   override def toString = {
     s"""Poll name : $name

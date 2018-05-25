@@ -1,7 +1,7 @@
 import main.scala._
 import org.scalatest.{FlatSpec, Matchers}
 
-class Tests extends FlatSpec  with Matchers{
+class Tests extends FlatSpec with Matchers {
   val dateParser = new java.text.SimpleDateFormat("hh:mm:ss yy:MM:dd")
 
   "After initialization poll repo's map" should "be empty" in {
@@ -9,7 +9,7 @@ class Tests extends FlatSpec  with Matchers{
   }
 
   "After Initialization poll repo's context id" should "be zero" in {
-    assertResult(0) {
+    assertResult(-1) {
       PollRepo().currentContextPoll
     }
   }
@@ -114,7 +114,7 @@ class Tests extends FlatSpec  with Matchers{
     val (msg, ctx) = CreatePoll("HI") execute PollRepo()
     val id = msg.split(":")(1).trim.toInt
     val (message, repo) = Begin(id) execute ctx
-    assertResult("Ok: switch to poll with number $id")(message)
+    assertResult(s"Ok: switch to poll with number $id")(message)
     assertResult(repo.currentContextPoll)(id)
   }
 
@@ -157,16 +157,35 @@ class Tests extends FlatSpec  with Matchers{
     assertResult("Error: You should select poll to watch the results")(message.split("\n")(0))
   }
 
-  "Poll Repo" should "add questiion to poll,when repo in context mode" in {
+  "Poll Repo" should "add questiion to poll, when repo is in context mode" in {
     val (msg, ctx) = CreatePoll("HI") execute PollRepo()
     val id = msg.split(":")(1).trim.toInt
     val (_, context) = Begin(id) execute ctx
     val (message, repo) = AddQuestion("Who are you?", Question.choice, Array("Tom", "John")) execute context
     assertResult(s"Ok: Poll number ${repo.currentContextPoll} add new question")(message)
     val actualQuestions = repo.polls(repo.currentContextPoll).questions
-    actualQuestions should have length 1
-    actualQuestions.head.text shouldBe "Who are you?"
-    actualQuestions.head.questionType shouldBe Question.choice
-    actualQuestions.head.answers shouldBe Array("Tom", "John")
+    actualQuestions should have size 1
+    actualQuestions should contain key 1
+    val question = actualQuestions(1)
+    question.text shouldBe "Who are you?"
+    question.questionType shouldBe Question.choice
+    question.answers shouldBe Array("Tom", "John")
+  }
+
+  "Poll Repo" should "not add questiion to poll, when repo isn't in context mode" in {
+    val (message, _) = AddQuestion("Who are you?", Question.choice, Array("Tom", "John")) execute PollRepo()
+    assertResult("Error: you should select poll to add questions")(message)
+  }
+
+  "Poll Repo" should "not add questiion to poll, when question have multi or choice type and haven't any answers" in {
+    val (msg, ctx) = CreatePoll("HI") execute PollRepo()
+    val id = msg.split(":")(1).trim.toInt
+    val (_, context) = Begin(id) execute ctx
+    for (questionType <- Array(Question.choice, Question.multi)) {
+      val (message, repo) = AddQuestion("Who are you?", questionType, Array.empty) execute context
+      assertResult("Error: Can't create poll without answers in multi or choice mode")(message)
+      val actualQuestions = repo.polls(repo.currentContextPoll).questions
+      actualQuestions should have size 0
+    }
   }
 }
