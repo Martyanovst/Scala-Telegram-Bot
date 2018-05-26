@@ -65,9 +65,6 @@ class Poll(val id: Int, name: String, val isAnonymous: Boolean, val isAfterstop:
   def addQuestion(question: Question) = new Poll(id, name, isAnonymous, isAfterstop, begin, end,
     questions + (questionNumberGenerator.next() -> question))
 
-  def deleteQuestion(id: Integer) = new Poll(id, name, isAnonymous, isAfterstop, begin, end,
-    questions - id)
-  
   override def toString = {
     s"""Poll name : $name
         Poll id : $id

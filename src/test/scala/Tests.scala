@@ -157,7 +157,7 @@ class Tests extends FlatSpec with Matchers {
     assertResult("Error: You should select poll to watch the results")(message.split("\n")(0))
   }
 
-  "Poll Repo" should "add questiion to poll, when repo is in context mode" in {
+  "Poll Repo" should "add question to poll, when repo is in context mode" in {
     val (msg, ctx) = CreatePoll("HI") execute PollRepo()
     val id = msg.split(":")(1).trim.toInt
     val (_, context) = Begin(id) execute ctx
@@ -172,12 +172,12 @@ class Tests extends FlatSpec with Matchers {
     question.answers shouldBe Array("Tom", "John")
   }
 
-  "Poll Repo" should "not add questiion to poll, when repo isn't in context mode" in {
+  "Poll Repo" should "not add question to poll, when repo isn't in context mode" in {
     val (message, _) = AddQuestion("Who are you?", Question.choice, Array("Tom", "John")) execute PollRepo()
     assertResult("Error: you should select poll to add questions")(message)
   }
 
-  "Poll Repo" should "not add questiion to poll, when question have multi or choice type and haven't any answers" in {
+  "Poll Repo" should "not add question to poll, when question have multi or choice type and haven't any answers" in {
     val (msg, ctx) = CreatePoll("HI") execute PollRepo()
     val id = msg.split(":")(1).trim.toInt
     val (_, context) = Begin(id) execute ctx
@@ -189,7 +189,7 @@ class Tests extends FlatSpec with Matchers {
     }
   }
 
-  "Poll Repo" should "not add questiion to poll, when question have open type and have answers" in {
+  "Poll Repo" should "not add question to poll, when question have open type and have answers" in {
     val (msg, ctx) = CreatePoll("HI") execute PollRepo()
     val id = msg.split(":")(1).trim.toInt
     val (_, context) = Begin(id) execute ctx
@@ -199,7 +199,7 @@ class Tests extends FlatSpec with Matchers {
     actualQuestions should have size 0
   }
 
-  "Poll Repo" should "not add questiion to poll, when poll is running" in {
+  "Poll Repo" should "not add question to poll, when poll is running" in {
     val (msg, ctx) = CreatePoll("HI", dateStart = Some(dateParser.parse("12:05:30 18:03:16"))) execute PollRepo()
     val id = msg.split(":")(1).trim.toInt
     val (_, context) = Begin(id) execute ctx
@@ -248,5 +248,4 @@ class Tests extends FlatSpec with Matchers {
     val actualQuestions = newRepo.polls(newRepo.currentContextPoll).questions
     actualQuestions should have size 1
   }
-
 }
