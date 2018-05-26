@@ -59,6 +59,8 @@ class Poll(val id: Int, name: String, val isAnonymous: Boolean, val isAfterstop:
       else "Error: Poll is already off"
     }
   }
+  def deleteQuestion(id: Integer) =new Poll(id, name, isAnonymous, isAfterstop, begin, end,
+    questions - id)
 
   def addQuestion(question: Question) = new Poll(id, name, isAnonymous, isAfterstop, begin, end,
     questions + (questionNumberGenerator.next() -> question))
