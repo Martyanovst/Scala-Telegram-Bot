@@ -237,7 +237,7 @@ class Tests extends FlatSpec with Matchers {
     assertResult(newRepo)(ctx)
   }
 
-  "Delete question" should "return error, if poll wasn't started" in {
+  "Delete question" should "return error, if poll was started" in {
     val (msg, ctx) = CreatePoll("HI") execute PollRepo()
     val id = msg.split(":")(1).trim.toInt
     val (_, context) = Begin(id) execute ctx
@@ -247,5 +247,68 @@ class Tests extends FlatSpec with Matchers {
     assertResult(s"Error: can't change poll when it's running")(message)
     val actualQuestions = newRepo.polls(newRepo.currentContextPoll).questions
     actualQuestions should have size 1
+  }
+
+  "AnswerOnQuestion" should "return error, context mode hasn't started" in {
+    val (msg, ctx) = CreatePoll("HI") execute PollRepo()
+    val username = "Orochimaru"
+    val id = msg.split(":")(1).trim.toInt
+    val (message, r) = AnswerOnQuestion(username, 1, "smt") execute ctx
+    assertResult("Error: Context mode turned off")(message)
+  }
+
+  "AnswerOnQuestion" should "return error, if poll wasn't started" in {
+    val (msg, ctx) = CreatePoll("HI") execute PollRepo()
+    val username = "Sakura"
+    val id = msg.split(":")(1).trim.toInt
+    val (_, context) = Begin(id) execute ctx
+    val (_, repo) = AddQuestion("Who are you?", Question.open, Array.empty) execute context
+    val (message, r) = AnswerOnQuestion(username, 1, "smt") execute repo
+    assertResult("Error: can't answer the question if poll wasn't started")(message)
+    r.polls(r.currentContextPoll).questions(1).usersAnswers shouldBe Map()
+  }
+
+  "AnswerOnQuestion" should "return error, if user answered the question before" in {
+    val (msg, ctx) = CreatePoll("HI") execute PollRepo()
+    val username = "Sasuke"
+    val id = msg.split(":")(1).trim.toInt
+    val (_, context) = Begin(id) execute ctx
+    val (_, repo) = AddQuestion("Who are you?", Question.open, Array.empty) execute context
+    val (_, rep) = StartPoll(id) execute repo
+    val (ms, re) = AnswerOnQuestion(username, 1, "smt") execute rep
+    val (message, newRepo) = AnswerOnQuestion(username, 1, "smt") execute re
+    newRepo.polls(newRepo.currentContextPoll).questions(1).usersAnswers shouldBe Map("Sasuke" -> "smt")
+    assertResult(s"Ok: $id answer on question №1 accepted")(ms)
+    assertResult("Error: User already answered the question №1")(message)
+  }
+
+  "AnswerOnQuestion" should "return error, if question id not exist in poll" in {
+    val (msg, ctx) = CreatePoll("HI") execute PollRepo()
+    val username = "Naruto"
+    val id = msg.split(":")(1).trim.toInt
+    val (_, context) = Begin(id) execute ctx
+    val (_, repo) = AddQuestion("Who are you?", Question.open, Array.empty) execute context
+    val (_, rep) = StartPoll(id) execute repo
+    val (message, newRepo) = AnswerOnQuestion(username, 2, "smt") execute rep
+    assertResult("Error: Question №2 doesn't exist")(message)
+  }
+
+  "AnswerOnQuestion" should "return error, if question  " in {
+
+  }
+
+  "AnswerOnQuestion" should "accept answer, if question exist and user didn't aswer on it before" in {
+    val (msg, ctx) = CreatePoll("HI") execute PollRepo()
+    val username = "Kakashi"
+    val id = msg.split(":")(1).trim.toInt
+    val (_, context) = Begin(id) execute ctx
+    val (_, repo) = AddQuestion("Who are you?", Question.open, Array.empty) execute context
+    val (_, rep) = StartPoll(id) execute repo
+    val (message, _) = AnswerOnQuestion(username, 1, "smt") execute rep
+    assertResult(s"Ok: $id answer on question №1 accepted")(message)
+  }
+
+  "AnswerOnQuestin" should "" in {
+
   }
 }
