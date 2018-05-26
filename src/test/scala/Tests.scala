@@ -188,4 +188,65 @@ class Tests extends FlatSpec with Matchers {
       actualQuestions should have size 0
     }
   }
+
+  "Poll Repo" should "not add questiion to poll, when question have open type and have answers" in {
+    val (msg, ctx) = CreatePoll("HI") execute PollRepo()
+    val id = msg.split(":")(1).trim.toInt
+    val (_, context) = Begin(id) execute ctx
+    val (message, repo) = AddQuestion("Who are you?", Question.open, Array("Tom", "John")) execute context
+    assertResult("Error: Can't create poll with answers in choice mode")(message)
+    val actualQuestions = repo.polls(repo.currentContextPoll).questions
+    actualQuestions should have size 0
+  }
+
+  "Poll Repo" should "not add questiion to poll, when poll is running" in {
+    val (msg, ctx) = CreatePoll("HI", dateStart = Some(dateParser.parse("12:05:30 18:03:16"))) execute PollRepo()
+    val id = msg.split(":")(1).trim.toInt
+    val (_, context) = Begin(id) execute ctx
+    val (message, repo) = AddQuestion("Who are you?", Question.choice, Array("Tom", "John")) execute context
+    assertResult("Error: Can't change poll when it's running")(message)
+    val actualQuestions = repo.polls(repo.currentContextPoll).questions
+    actualQuestions should have size 0
+  }
+
+  "Delete question" should "delete question, if it exist and context mode is on" in {
+    val (msg, ctx) = CreatePoll("HI") execute PollRepo()
+    val id = msg.split(":")(1).trim.toInt
+    val (_, context) = Begin(id) execute ctx
+    val (_, repo) = AddQuestion("Who are you?", Question.open, Array.empty) execute context
+    val (message, newRepo) = DeleteQuestion(1) execute repo
+    assertResult(s"Ok: $id delete question")(message)
+    val actualQuestions = newRepo.polls(newRepo.currentContextPoll).questions
+    actualQuestions should have size 0
+  }
+
+  "Delete question" should "return error, when question id is wrong" in {
+    val (msg, ctx) = CreatePoll("HI") execute PollRepo()
+    val id = msg.split(":")(1).trim.toInt
+    val (_, context) = Begin(id) execute ctx
+    val (message, newRepo) = DeleteQuestion(1) execute context
+    assertResult("Error: Question id wasn't found")(message)
+    assertResult(newRepo)(context)
+  }
+
+  "Delete question" should "return error, if context mode wasn't started" in {
+    val (msg, ctx) = CreatePoll("HI") execute PollRepo()
+    val id = msg.split(":")(1).trim.toInt
+    val (message, newRepo) = DeleteQuestion(1) execute ctx
+    assertResult("Error: Context mode turned off")(message)
+    assertResult(newRepo)(ctx)
+  }
+
+  "Delete question" should "return error, if poll wasn't started" in {
+    val (msg, ctx) = CreatePoll("HI") execute PollRepo()
+    val id = msg.split(":")(1).trim.toInt
+    val (_, context) = Begin(id) execute ctx
+    val (_, repo) = AddQuestion("Who are you?", Question.open, Array.empty) execute context
+    val (_, rep) = StartPoll(id) execute repo
+    val (message, newRepo) = DeleteQuestion(1) execute rep
+    assertResult(s"Error: can't change poll when it's running")(message)
+    val actualQuestions = newRepo.polls(newRepo.currentContextPoll).questions
+    actualQuestions should have size 1
+  }
+
 }
