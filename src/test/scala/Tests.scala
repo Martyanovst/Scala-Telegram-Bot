@@ -27,34 +27,45 @@ class Tests extends FlatSpec with Matchers {
     assert(message.isEmpty)
   }
 
-  "Poll repo" should "delete poll if it contains" in {
+  "Delete Poll" should "delete poll if it contains" in {
     val (_, ctx) = CreatePoll("test") execute PollRepo()
     val id = ctx.polls.keys.head
-    val (_, actual) = DeletePoll(id) execute ctx
+    val (message, actual) = DeletePoll(id) execute ctx
+    message shouldBe "Ok: Poll has been deleted"
     assert(actual.polls.isEmpty)
   }
 
-  "Poll repo" should "not delete anything when delete incorrect poll id" in {
+  "Delete Poll" should "not delete anything when delete incorrect poll id" in {
     val (_, ctx) = CreatePoll("test") execute PollRepo()
-    val (_, actual) = DeletePoll(1000) execute ctx
+    val (message, actual) = DeletePoll(1000) execute ctx
+    message shouldBe "Error: This poll doesn't exists"
     assert(actual.polls.nonEmpty)
   }
 
-  "Poll Repo" should "not start poll, when it's running" in {
+  "Delete Poll" should "not delete anything when poll is running" in {
+    val (_, ctx) = CreatePoll("test") execute PollRepo()
+    val id = ctx.polls.keys.head
+    val (_, repo) = StartPoll(id) execute ctx
+    val (message, actual) = DeletePoll(id) execute repo
+    message shouldBe "Error: Can't delete poll while it's running"
+    assert(actual.polls.nonEmpty)
+  }
+
+  "Start Poll" should "not start poll, when it's running" in {
     val (msg, ctx) = CreatePoll("HI", dateStart = Some(dateParser.parse("12:05:30 18:03:16"))) execute PollRepo()
     val id = msg.split(":")(1).trim.toInt
     val (message, _) = StartPoll(id) execute ctx
     assertResult("Error: The poll is already on")(message)
   }
 
-  "Poll Repo" should "start poll, when start time is undefined" in {
+  "Start Poll" should "start poll, when start time is undefined" in {
     val (msg, ctx) = CreatePoll("HI") execute PollRepo()
     val id = msg.split(":")(1).trim.toInt
     val (message, _) = StartPoll(id) execute ctx
     assertResult("Ok: The poll was launched")(message)
   }
 
-  "Poll Repo" should "not start poll, when start time is defined" in {
+  "Start Poll" should "not start poll, when start time is defined" in {
     val (msg, ctx) = CreatePoll("HI", dateStart =
       Some(dateParser.parse("12:05:30 19:03:16"))) execute PollRepo()
     val id = msg.split(":")(1).trim.toInt
@@ -62,7 +73,7 @@ class Tests extends FlatSpec with Matchers {
     assertResult("Error: Start time is already defined")(message)
   }
 
-  "Poll Repo" should "not start poll, when it's finished" in {
+  "Start Poll" should "not start poll, when it's finished" in {
     val (msg, ctx) = CreatePoll("HI", dateStart = Some(dateParser.parse("12:05:30 16:03:16")),
       dateEnd = Some(dateParser.parse("12:05:30 18:05:16"))) execute PollRepo()
     val id = msg.split(":")(1).trim.toInt
@@ -70,20 +81,20 @@ class Tests extends FlatSpec with Matchers {
     assertResult("Error: Poll is finished")(message)
   }
 
-  "Poll Repo" should "not stop poll, when it doesn't running" in {
+  "Stop Poll" should "not stop poll, when it doesn't running" in {
     val (msg, ctx) = CreatePoll("HI") execute PollRepo()
     val (message, _) = StopPoll(msg.split(":")(1).trim.toInt) execute ctx
     assertResult("Error: Poll is already off")(message)
   }
 
-  "Poll Repo" should "not stop poll, when stop time is defined" in {
+  "Stop Poll" should "not stop poll, when stop time is defined" in {
     val (msg, ctx) = CreatePoll("HI", dateStart = Some(dateParser.parse("12:05:30 18:03:16")),
       dateEnd = Some(dateParser.parse("12:05:30 18:05:16"))) execute PollRepo()
     val (message, _) = StopPoll(msg.split(":")(1).trim.toInt) execute ctx
     assertResult("Error: Stop time is already defined")(message)
   }
 
-  "Poll Repo" should "stop poll, when poll is running and stop time isn't defined" in {
+  "Stop Poll" should "stop poll, when poll is running and stop time isn't defined" in {
     val (msg, ctx) = CreatePoll("HI", dateStart = Some(dateParser.parse("12:05:30 18:03:16"))) execute PollRepo()
     val (message, _) = StopPoll(msg.split(":")(1).trim.toInt) execute ctx
     assertResult("Ok: The poll is over")(message)
