@@ -3,8 +3,6 @@ package main.scala
 import java.util.Date
 
 import scala.util.Try
-import scala.util.Success
-import scala.util.Failure
 import scala.util.parsing.combinator.RegexParsers
 
 class CommandParser extends RegexParsers {
@@ -49,12 +47,16 @@ class CommandParser extends RegexParsers {
   }
 
   def add_question: Parser[Command] = "/add_question" ~> anyWord ~ ("(" ~> ("open" | "choice" | "multi") <~ ")").? ~
-    answers ^^ {
-    case name ~ questionType ~ answers => AddQuestion(name, Question.GetValue(questionType.getOrElse("open")), answers)
+    answers.? ^^ {
+    case _ ~ None ~ Some(_) => IncorrectCommand("Please, select one of {open;choice,multi} question type")
+    case name ~ questionType ~ answers =>
+      AddQuestion(name, Question.GetValue(questionType.getOrElse("open")), answers.getOrElse(Array.empty))
   }
 
+  def deleteQuestion: Parser[Command] = "/delete_question" ~> "\\d+".r ^^ (id => DeleteQuestion(id.toInt))
+
   def answers: Parser[Array[String]] = ".+".r.* ^^ {
-    _.toArray
+    _.map(_.trim()).filter(_.nonEmpty).toArray
   }
 
   def id: Parser[Int] = "(" ~> "\\d+".r <~ ")" ^^ {

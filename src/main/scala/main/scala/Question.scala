@@ -9,8 +9,7 @@ object Question extends Enumeration {
 
   def GetValue(text: String): Question.Value = {
     if (text == "choice") Question.choice
-    if (text == "multi") Question.multi
-    else
-      Question.open
+    else if (text == "multi") Question.multi
+    else Question.open
   }
 }

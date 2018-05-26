@@ -50,17 +50,18 @@ class ParserTests extends FunSpec with Matchers {
   }
 
   it("should parse simple command") {
-    val query_del = "/delete_poll (1)"
-    val query_start = "/start_poll (2)"
-    val query_result = "/result (3)"
-    val query_begin = "/begin (4)"
-    val query_stop = "/stop_poll (5)"
-
-    assert(parser.parse(parser.command, query_del).get.equals(DeletePoll(1)))
-    assert(parser.parse(parser.command, query_start).get.equals(StartPoll(2)))
-    assert(parser.parse(parser.command, query_result).get.equals(Result(3)))
-    assert(parser.parse(parser.command, query_begin).get.equals(Begin(4)))
-    assert(parser.parse(parser.command, query_stop).get.equals(StopPoll(5)))
+    val queryDel = "/delete_poll (1)"
+    val queryStart = "/start_poll (2)"
+    val queryResult = "/result (3)"
+    val queryBegin = "/begin (4)"
+    val queryStop = "/stop_poll (5)"
+    val queryDeleteQuestion = "/delete_question (6)"
+    parser.parse(parser.command, queryDel).get shouldBe DeletePoll(1)
+    parser.parse(parser.command, queryStart).get shouldBe StartPoll(2)
+    parser.parse(parser.command, queryResult).get shouldBe Result(3)
+    parser.parse(parser.command, queryBegin).get shouldBe Begin(4)
+    parser.parse(parser.command, queryStop).get shouldBe StopPoll(5)
+    parser.parse(parser.command, queryDeleteQuestion).get shouldBe DeleteQuestion(6)
   }
 
   it("should parse commands without args") {
@@ -82,5 +83,35 @@ class ParserTests extends FunSpec with Matchers {
     assertResult(IncorrectCommand("bad params"))(parser.parse(parser.command, incorrectParams2).get)
     assertResult(IncorrectCommand("bad params"))(parser.parse(parser.command, incorrectParams3).get)
   }
-}
 
+  it("should parse add question") {
+    val open = "/add_question (bla-bla-bla)(open)"
+    val choice = "/add_question (bla-bla-bla)(choice)\nfirst\nsecond\n"
+    val multi = "/add_question (bla-bla-bla)(multi)\nfirst\nsecond\n"
+    val parsedOpen = parser.parse(parser.command, open).get.asInstanceOf[AddQuestion]
+    val parsedChoice = parser.parse(parser.command, choice).get.asInstanceOf[AddQuestion]
+    val parsedMulti = parser.parse(parser.command, multi).get.asInstanceOf[AddQuestion]
+    parsedOpen.name shouldBe "bla-bla-bla"
+
+    parsedOpen.questionType shouldBe Question.open
+    parsedChoice.questionType shouldBe Question.choice
+    parsedMulti.questionType shouldBe Question.multi
+
+    parsedOpen.answers should have length 0
+    parsedChoice.answers shouldBe Array("first", "second")
+    parsedMulti.answers shouldBe Array("first", "second")
+  }
+
+  it("shouldn't parse add question with bad question type") {
+    val badQuestionType = "/add_question (bla-bla-bla)(multipopen)\nfirst\nsecond\n"
+    parser.parse(parser.command, badQuestionType).get shouldBe
+      IncorrectCommand("Please, select one of {open;choice,multi} question type")
+  }
+
+  it("shouldn't parse delete question with bad parameters") {
+    val badQuestionId = "/delete_question (ha-ha)"
+    val withoutId = "/delete_question"
+    parser.parse(parser.command, badQuestionId).get shouldBe IncorrectCommand("incorrect command")
+    parser.parse(parser.command, withoutId).get shouldBe IncorrectCommand("incorrect command")
+  }
+}

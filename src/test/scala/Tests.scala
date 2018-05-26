@@ -4,22 +4,15 @@ import org.scalatest.{FlatSpec, Matchers}
 class Tests extends FlatSpec with Matchers {
   val dateParser = new java.text.SimpleDateFormat("hh:mm:ss yy:MM:dd")
 
-  "After initialization poll repo's map" should "be empty" in {
-    assert(PollRepo().polls.isEmpty)
-  }
+  "After initialization poll repo's map" should "be empty" in assert(PollRepo().polls.isEmpty)
 
-  "After Initialization poll repo's context id" should "be zero" in {
-    assertResult(-1) {
-      PollRepo().currentContextPoll
-    }
-  }
+  "After Initialization poll repo's context id" should "be zero" in assertResult(-1) (PollRepo().currentContextPoll)
+
 
   "Poll repo" should "contains new poll after create poll" in {
     val (_, actual) = CreatePoll("test") execute PollRepo()
     assert(actual.polls.nonEmpty)
-    assertResult("test") {
-      actual.polls(1).getName
-    }
+    assertResult("test")(actual.polls(1).getName)
   }
 
   "When poll repo is empty Listing" should "be empty" in {
@@ -27,34 +20,45 @@ class Tests extends FlatSpec with Matchers {
     assert(message.isEmpty)
   }
 
-  "Poll repo" should "delete poll if it contains" in {
+  "Delete Poll" should "delete poll if it contains" in {
     val (_, ctx) = CreatePoll("test") execute PollRepo()
     val id = ctx.polls.keys.head
-    val (_, actual) = DeletePoll(id) execute ctx
+    val (message, actual) = DeletePoll(id) execute ctx
+    message shouldBe "Ok: Poll has been deleted"
     assert(actual.polls.isEmpty)
   }
 
-  "Poll repo" should "not delete anything when delete incorrect poll id" in {
+  "Delete Poll" should "not delete anything when delete incorrect poll id" in {
     val (_, ctx) = CreatePoll("test") execute PollRepo()
-    val (_, actual) = DeletePoll(1000) execute ctx
+    val (message, actual) = DeletePoll(1000) execute ctx
+    message shouldBe "Error: This poll doesn't exists"
     assert(actual.polls.nonEmpty)
   }
 
-  "Poll Repo" should "not start poll, when it's running" in {
+  "Delete Poll" should "not delete anything when poll is running" in {
+    val (_, ctx) = CreatePoll("test") execute PollRepo()
+    val id = ctx.polls.keys.head
+    val (_, repo) = StartPoll(id) execute ctx
+    val (message, actual) = DeletePoll(id) execute repo
+    message shouldBe "Error: Can't delete poll while it's running"
+    assert(actual.polls.nonEmpty)
+  }
+
+  "Start Poll" should "not start poll, when it's running" in {
     val (msg, ctx) = CreatePoll("HI", dateStart = Some(dateParser.parse("12:05:30 18:03:16"))) execute PollRepo()
     val id = msg.split(":")(1).trim.toInt
     val (message, _) = StartPoll(id) execute ctx
     assertResult("Error: The poll is already on")(message)
   }
 
-  "Poll Repo" should "start poll, when start time is undefined" in {
+  "Start Poll" should "start poll, when start time is undefined" in {
     val (msg, ctx) = CreatePoll("HI") execute PollRepo()
     val id = msg.split(":")(1).trim.toInt
     val (message, _) = StartPoll(id) execute ctx
     assertResult("Ok: The poll was launched")(message)
   }
 
-  "Poll Repo" should "not start poll, when start time is defined" in {
+  "Start Poll" should "not start poll, when start time is defined" in {
     val (msg, ctx) = CreatePoll("HI", dateStart =
       Some(dateParser.parse("12:05:30 19:03:16"))) execute PollRepo()
     val id = msg.split(":")(1).trim.toInt
@@ -62,7 +66,7 @@ class Tests extends FlatSpec with Matchers {
     assertResult("Error: Start time is already defined")(message)
   }
 
-  "Poll Repo" should "not start poll, when it's finished" in {
+  "Start Poll" should "not start poll, when it's finished" in {
     val (msg, ctx) = CreatePoll("HI", dateStart = Some(dateParser.parse("12:05:30 16:03:16")),
       dateEnd = Some(dateParser.parse("12:05:30 18:05:16"))) execute PollRepo()
     val id = msg.split(":")(1).trim.toInt
@@ -70,20 +74,20 @@ class Tests extends FlatSpec with Matchers {
     assertResult("Error: Poll is finished")(message)
   }
 
-  "Poll Repo" should "not stop poll, when it doesn't running" in {
+  "Stop Poll" should "not stop poll, when it doesn't running" in {
     val (msg, ctx) = CreatePoll("HI") execute PollRepo()
     val (message, _) = StopPoll(msg.split(":")(1).trim.toInt) execute ctx
     assertResult("Error: Poll is already off")(message)
   }
 
-  "Poll Repo" should "not stop poll, when stop time is defined" in {
+  "Stop Poll" should "not stop poll, when stop time is defined" in {
     val (msg, ctx) = CreatePoll("HI", dateStart = Some(dateParser.parse("12:05:30 18:03:16")),
       dateEnd = Some(dateParser.parse("12:05:30 18:05:16"))) execute PollRepo()
     val (message, _) = StopPoll(msg.split(":")(1).trim.toInt) execute ctx
     assertResult("Error: Stop time is already defined")(message)
   }
 
-  "Poll Repo" should "stop poll, when poll is running and stop time isn't defined" in {
+  "Stop Poll" should "stop poll, when poll is running and stop time isn't defined" in {
     val (msg, ctx) = CreatePoll("HI", dateStart = Some(dateParser.parse("12:05:30 18:03:16"))) execute PollRepo()
     val (message, _) = StopPoll(msg.split(":")(1).trim.toInt) execute ctx
     assertResult("Ok: The poll is over")(message)
@@ -250,10 +254,9 @@ class Tests extends FlatSpec with Matchers {
   }
 
   "AnswerOnQuestion" should "return error, context mode hasn't started" in {
-    val (msg, ctx) = CreatePoll("HI") execute PollRepo()
+    val (_, ctx) = CreatePoll("HI") execute PollRepo()
     val username = "Orochimaru"
-    val id = msg.split(":")(1).trim.toInt
-    val (message, r) = AnswerOnQuestion(username, 1, "smt") execute ctx
+    val (message, _) = AnswerOnQuestion(username, 1, "smt") execute ctx
     assertResult("Error: Context mode turned off")(message)
   }
 
@@ -282,16 +285,23 @@ class Tests extends FlatSpec with Matchers {
     assertResult("Error: User already answered the question №1")(message)
   }
 
-  "AnswerOnQuestion" should "return error, if question id not exist in poll" in {
+  "AnswerOnQuestion" should "return error, if question id doesn't exist" in {
     val (msg, ctx) = CreatePoll("HI") execute PollRepo()
     val username = "Naruto"
     val id = msg.split(":")(1).trim.toInt
     val (_, context) = Begin(id) execute ctx
-    val (_, repo) = AddQuestion("Who are you?", Question.open, Array.empty) execute context
-    val (_, rep) = StartPoll(id) execute repo
-    val (message, _) = AnswerOnQuestion(username, 2, "smt") execute rep
+    val (_, re) = AddQuestion("Who are you?", Question.open, Array.empty) execute context
+    val (_, rep) = StartPoll(id) execute re
+    val (message, repo) = AnswerOnQuestion(username, 2, "smt") execute rep
     assertResult("Error: Question №2 doesn't exist")(message)
+    repo.polls(repo.currentContextPoll).questions(1).usersAnswers should have size 0
+    repo.polls(repo.currentContextPoll).questions should have size 1
   }
+
+  "AnswerOnQuestion" should "return error, if question  " in {
+
+  }
+
   "AnswerOnQuestion" should "accept answer, if question exist and user didn't aswer on it before" in {
     val (msg, ctx) = CreatePoll("HI") execute PollRepo()
     val username = "Kakashi"
@@ -300,58 +310,10 @@ class Tests extends FlatSpec with Matchers {
     val (_, repo) = AddQuestion("Who are you?", Question.open, Array.empty) execute context
     val (_, rep) = StartPoll(id) execute repo
     val (message, _) = AnswerOnQuestion(username, 1, "smt") execute rep
-    assertResult(s"Ok: answer in poll №$id on question №1 accepted")(message)
+    assertResult(s"Ok: $id answer on question №1 accepted")(message)
   }
 
-  "AnswerOnQuestion" should "return error, if question type is choise and answer is not digit" in {
-    val (msg, ctx) = CreatePoll("HI") execute PollRepo()
-    val username = "Kakashi"
-    val id = msg.split(":")(1).trim.toInt
-    val (_, context) = Begin(id) execute ctx
-    val (_, repo) = AddQuestion("Who are you?", Question.choice, Array.empty) execute context
-    val (_, rep) = StartPoll(id) execute repo
-    val (message, _) = AnswerOnQuestion(username, 1, "smt") execute rep
-    assertResult("Error: Question type is choise but answer isn't digit")(message)
-  }
+  "AnswerOnQuestin" should "" in {
 
-  "AnswerOnQuestion" should "return error, if question type is multi and answer is not sequence of digits" in {
-    val (msg, ctx) = CreatePoll("HI") execute PollRepo()
-    val username = "Kakashi"
-    val id = msg.split(":")(1).trim.toInt
-    val (_, context) = Begin(id) execute ctx
-    val (_, repo) = AddQuestion("Who are you?", Question.multi, Array.empty) execute context
-    val (_, rep) = StartPoll(id) execute repo
-    val (message, _) = AnswerOnQuestion(username, 1, "smt") execute rep
-    assertResult("Error: Question type is multi but answer isn't sequence digit")(message)
-  }
-  "AnswerOnQuestion" should "return error, if question type is multi and some digits in answer are the same" in {
-    val (msg, ctx) = CreatePoll("HI") execute PollRepo()
-    val username = "Kakashi"
-    val id = msg.split(":")(1).trim.toInt
-    val (_, context) = Begin(id) execute ctx
-    val (_, repo) = AddQuestion("Who are you?", Question.multi, Array.empty) execute context
-    val (_, rep) = StartPoll(id) execute repo
-    val (message, _) = AnswerOnQuestion(username, 1, "1 1 2") execute rep
-    assertResult("Error: Question type is multi but some digits in answer are the same")(message)
-  }
-  "AnswerOnQuestion" should "accept answer, if question type is choice and answer is digit" in {
-    val (msg, ctx) = CreatePoll("HI") execute PollRepo()
-    val username = "Kakashi"
-    val id = msg.split(":")(1).trim.toInt
-    val (_, context) = Begin(id) execute ctx
-    val (_, repo) = AddQuestion("Who are you?", Question.multi, Array.empty) execute context
-    val (_, rep) = StartPoll(id) execute repo
-    val (message, _) = AnswerOnQuestion(username, 1, "1 1 2") execute rep
-    assertResult(s"Ok: answer in poll №$id on question №1 accepted")(message)
-  }
-  "AnswerOnQuestion" should "accetp answer, if question type is multi and answer is sequence of different digts" in {
-    val (msg, ctx) = CreatePoll("HI") execute PollRepo()
-    val username = "Kakashi"
-    val id = msg.split(":")(1).trim.toInt
-    val (_, context) = Begin(id) execute ctx
-    val (_, repo) = AddQuestion("Who are you?", Question.multi, Array.empty) execute context
-    val (_, rep) = StartPoll(id) execute repo
-    val (message, _) = AnswerOnQuestion(username, 1, "1 2 3") execute rep
-    assertResult(s"Ok: answer in poll №$id on question №1 accepted")(message)
   }
 }

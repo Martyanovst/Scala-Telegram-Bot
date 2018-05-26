@@ -2,44 +2,35 @@ package main.scala
 
 import java.util.Date
 import java.util.Calendar
+import Poll.now
 
-case class PollRepo(polls: Map[Int, Poll] = Map[Int, Poll](), currentContextPoll: Int = -1)
+case class PollRepo(polls: Map[Int, Poll] = Map[Int, Poll](), currentContextPoll: Int = -1) {
+
+  def %(poll: Poll): PollRepo = PollRepo(polls + (poll.id -> poll), currentContextPoll)
+}
 
 class Poll(val id: Int, name: String, val isAnonymous: Boolean, val isAfterstop: Boolean,
            val begin: Option[Date], val end: Option[Date],
            val questions: Map[Int, Question] = Map[Int, Question]()) {
-  val calendar = Calendar.getInstance()
+
   val getName = name
   val getId = id
-  val dateParser = new java.text.SimpleDateFormat("hh:mm:ss yy:MM:dd")
+
   val questionNumberGenerator = Stream.from(1).toIterator
 
-  def now: Date = dateParser.parse(dateParser.format(calendar.getTime))
-
-  var running: Option[Boolean] = if (end.isDefined) for {x <- begin; y <- end} yield (now after x) && (now before y)
-  else for (x <- begin) yield now after x
+  val running: Option[Boolean] = {
+    if (end.isDefined)
+      for {x <- begin; y <- end} yield (now after x) && (now before y)
+    else for (x <- begin) yield (now after x) || (now equals x)
+  }
 
   def timeIsNotOver: Option[Boolean] = {
     for (x <- begin; y <- end)
       yield (now after x) && (now before y)
   }
 
-  def start: String = {
-    if ((for {x <- end} yield now after x).getOrElse(false))
-      "Error: Poll is finished"
-    else {
-      if (running.getOrElse(false))
-        "Error: The poll is already on"
-      else {
-        if (begin.isDefined)
-          "Error: Start time is already defined"
-        else {
-          running = Some(true)
-          "Ok: The poll was launched"
-        }
-      }
-    }
-  }
+  def start = new Poll(id, name, isAnonymous, isAfterstop, Some(now), end, questions)
+
 
   def showResult: String = {
     if (running.getOrElse(false) && timeIsNotOver.getOrElse(false) && isAfterstop)
@@ -48,38 +39,17 @@ class Poll(val id: Int, name: String, val isAnonymous: Boolean, val isAfterstop:
       "Ok\n" + this.toString + questions.mkString("\n")
   }
 
-  def stop: String = {
-    if (end.isDefined) "Error: Stop time is already defined"
-    else {
-      val isCompleted = for (x <- end) yield now after x
-      if (running.getOrElse(false) && isCompleted.getOrElse(true)) {
-        running = Some(false)
-        "Ok: The poll is over"
-      }
-      else "Error: Poll is already off"
-    }
-  }
+  def stop = new Poll(id, name, isAnonymous, isAfterstop, begin, Some(now), questions)
 
-  def deleteQuestion(id: Integer): Poll = {
-    val newPollInstance = new Poll(id, name, isAnonymous, isAfterstop, begin, end,
-      questions - id)
-    newPollInstance.running = Some(running.getOrElse(false))
-    newPollInstance
-  }
+  def deleteQuestion(idQ: Integer): Poll = new Poll(id, name, isAnonymous, isAfterstop, begin, end, questions - idQ)
 
-  def addQuestion(question: Question): Poll = {
-    val newPollInstance = new Poll(id, name, isAnonymous, isAfterstop, begin, end,
-      questions + (questionNumberGenerator.next() -> question))
-    newPollInstance.running = Some(running.getOrElse(false))
-    newPollInstance
-  }
+  def addQuestion(question: Question): Poll = new Poll(id, name, isAnonymous, isAfterstop, begin, end,
+    questions + (questionNumberGenerator.next() -> question))
 
-  def updateQuestions(question: Question, idq: Int) = {
-    val newPollInstance = new Poll(id, name, isAnonymous, isAfterstop, begin, end,
-      questions + (idq -> question))
-    newPollInstance.running = Some(running.getOrElse(false))
-    newPollInstance
-  }
+
+  def updateQuestions(question: Question, idq: Int) = new Poll(id, name, isAnonymous, isAfterstop, begin, end,
+    questions + (idq -> question))
+
 
   override def toString = {
     s"""Poll name : $name
@@ -97,4 +67,11 @@ class Poll(val id: Int, name: String, val isAnonymous: Boolean, val isAfterstop:
     }
       """
   }
+}
+
+object Poll {
+  val calendar = Calendar.getInstance()
+  val dateParser = new java.text.SimpleDateFormat("hh:mm:ss yy:MM:dd")
+
+  def now: Date = dateParser.parse(dateParser.format(calendar.getTime))
 }
