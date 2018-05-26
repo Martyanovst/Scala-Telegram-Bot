@@ -4,22 +4,15 @@ import org.scalatest.{FlatSpec, Matchers}
 class Tests extends FlatSpec with Matchers {
   val dateParser = new java.text.SimpleDateFormat("hh:mm:ss yy:MM:dd")
 
-  "After initialization poll repo's map" should "be empty" in {
-    assert(PollRepo().polls.isEmpty)
-  }
+  "After initialization poll repo's map" should "be empty" in assert(PollRepo().polls.isEmpty)
 
-  "After Initialization poll repo's context id" should "be zero" in {
-    assertResult(-1) {
-      PollRepo().currentContextPoll
-    }
-  }
+  "After Initialization poll repo's context id" should "be zero" in assertResult(-1) (PollRepo().currentContextPoll)
+
 
   "Poll repo" should "contains new poll after create poll" in {
     val (_, actual) = CreatePoll("test") execute PollRepo()
     assert(actual.polls.nonEmpty)
-    assertResult("test") {
-      actual.polls(1).getName
-    }
+    assertResult("test")(actual.polls(1).getName)
   }
 
   "When poll repo is empty Listing" should "be empty" in {
@@ -261,10 +254,9 @@ class Tests extends FlatSpec with Matchers {
   }
 
   "AnswerOnQuestion" should "return error, context mode hasn't started" in {
-    val (msg, ctx) = CreatePoll("HI") execute PollRepo()
+    val (_, ctx) = CreatePoll("HI") execute PollRepo()
     val username = "Orochimaru"
-    val id = msg.split(":")(1).trim.toInt
-    val (message, r) = AnswerOnQuestion(username, 1, "smt") execute ctx
+    val (message, _) = AnswerOnQuestion(username, 1, "smt") execute ctx
     assertResult("Error: Context mode turned off")(message)
   }
 
@@ -293,15 +285,17 @@ class Tests extends FlatSpec with Matchers {
     assertResult("Error: User already answered the question №1")(message)
   }
 
-  "AnswerOnQuestion" should "return error, if question id not exist in poll" in {
+  "AnswerOnQuestion" should "return error, if question id doesn't exist" in {
     val (msg, ctx) = CreatePoll("HI") execute PollRepo()
     val username = "Naruto"
     val id = msg.split(":")(1).trim.toInt
     val (_, context) = Begin(id) execute ctx
-    val (_, repo) = AddQuestion("Who are you?", Question.open, Array.empty) execute context
-    val (_, rep) = StartPoll(id) execute repo
-    val (message, newRepo) = AnswerOnQuestion(username, 2, "smt") execute rep
+    val (_, re) = AddQuestion("Who are you?", Question.open, Array.empty) execute context
+    val (_, rep) = StartPoll(id) execute re
+    val (message, repo) = AnswerOnQuestion(username, 2, "smt") execute rep
     assertResult("Error: Question №2 doesn't exist")(message)
+    repo.polls(repo.currentContextPoll).questions(1).usersAnswers should have size 0
+    repo.polls(repo.currentContextPoll).questions should have size 1
   }
 
   "AnswerOnQuestion" should "return error, if question  " in {
