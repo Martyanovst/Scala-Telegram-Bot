@@ -1,6 +1,7 @@
 package main.scala
 
-case class Question(text: String, questionType: Question.Value, answers: Array[String]) {
+case class Question(text: String, questionType: Question.Value, answers: Array[String],
+                    usersAnswers: Map[String, String] = Map[String, String]()) {
 }
 
 object Question extends Enumeration {

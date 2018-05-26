@@ -59,11 +59,27 @@ class Poll(val id: Int, name: String, val isAnonymous: Boolean, val isAfterstop:
       else "Error: Poll is already off"
     }
   }
-  def deleteQuestion(id: Integer) =new Poll(id, name, isAnonymous, isAfterstop, begin, end,
-    questions - id)
 
-  def addQuestion(question: Question) = new Poll(id, name, isAnonymous, isAfterstop, begin, end,
-    questions + (questionNumberGenerator.next() -> question))
+  def deleteQuestion(id: Integer): Poll = {
+    val newPollInstance = new Poll(id, name, isAnonymous, isAfterstop, begin, end,
+      questions - id)
+    newPollInstance.running = Some(running.getOrElse(false))
+    newPollInstance
+  }
+
+  def addQuestion(question: Question): Poll = {
+    val newPollInstance = new Poll(id, name, isAnonymous, isAfterstop, begin, end,
+      questions + (questionNumberGenerator.next() -> question))
+    newPollInstance.running = Some(running.getOrElse(false))
+    newPollInstance
+  }
+
+  def updateQuestions(question: Question, idq: Int) = {
+    val newPollInstance = new Poll(id, name, isAnonymous, isAfterstop, begin, end,
+      questions + (idq -> question))
+    newPollInstance.running = Some(running.getOrElse(false))
+    newPollInstance
+  }
 
   override def toString = {
     s"""Poll name : $name
