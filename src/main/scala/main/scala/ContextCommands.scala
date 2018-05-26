@@ -1,5 +1,8 @@
 package main.scala
+
 import Poll.now
+
+import scala.util.Try
 
 case class Begin(id: Int) extends Command {
   override def execute: PollRepo => (String, PollRepo) = context =>
@@ -68,18 +71,38 @@ case class AnswerOnQuestion(username: String, id: Int, answer: String) extends C
   override def execute: PollRepo => (String, PollRepo) = context => {
     if (context.currentContextPoll == -1)
       ("Error: Context mode turned off", context)
-    else if (!context.polls(context.currentContextPoll).running.getOrElse(false))
-      ("Error: can't answer the question if poll wasn't started", context)
-    else if (!context.polls(context.currentContextPoll).questions.contains(id))
-      (s"Error: Question №$id doesn't exist", context)
-    else if (context.polls(context.currentContextPoll).questions(id).usersAnswers.contains(username))
-      (s"Error: User already answered the question №$id", context)
     else {
-      val question = context.polls(context.currentContextPoll).questions(id)
-      val newUserAnswers = question.usersAnswers + (username -> answer)
-      val newQuestion = Question(question.text, question.questionType, question.answers, newUserAnswers)
-      val newContext = context.polls(context.currentContextPoll).updateQuestions(newQuestion, id)
-      (s"Ok: ${context.currentContextPoll} answer on question №$id accepted", context % newContext)
+      if (!context.polls(context.currentContextPoll).questions.contains(id))
+        (s"Error: Question №$id doesn't exist", context)
+      else {
+        val question = context.polls(context.currentContextPoll).questions(id)
+        if (!context.polls(context.currentContextPoll).running.getOrElse(false))
+          ("Error: can't answer the question if poll wasn't started", context)
+        else if (context.polls(context.currentContextPoll).questions(id).usersAnswers.contains(username))
+          (s"Error: User already answered the question №$id", context)
+        else if (question.questionType == Question.choice && Try(answer.toInt).isFailure)
+          ("Error: Question type is choise but answer isn't digit", context)
+        else if (question.questionType == Question.multi) {
+          val arr = answer.split(" ")
+          if (arr.exists(x => Try(x.toInt).isFailure))
+            ("Error: Question type is multi but answer isn't sequence of digits", context)
+          else if (arr.distinct.length != arr.length)
+            ("Error: Question type is multi but some digits in answer are the same", context)
+          else {
+            val newUserAnswers = question.usersAnswers + (username -> answer)
+            val newQuestion = Question(question.text, question.questionType, question.answers, newUserAnswers)
+            val newContext = context.polls(context.currentContextPoll).updateQuestions(newQuestion, id)
+            (s"Ok: answer in poll №${context.currentContextPoll} on question №1 accepted", context % newContext)
+          }
+        }
+        else {
+          val newUserAnswers = question.usersAnswers + (username -> answer)
+          val newQuestion = Question(question.text, question.questionType, question.answers, newUserAnswers)
+          val newContext = context.polls(context.currentContextPoll).updateQuestions(newQuestion, id)
+          (s"Ok: answer in poll №${context.currentContextPoll} on question №1 accepted", context % newContext)
+        }
+      }
     }
   }
 }
+
