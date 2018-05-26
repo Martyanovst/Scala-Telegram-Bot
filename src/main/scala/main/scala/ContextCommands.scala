@@ -81,7 +81,7 @@ case class AnswerOnQuestion(username: String,id: Int, answer: String) extends Co
         val newUserAnswers = question.usersAnswers + (username -> answer)
         val newQuestion = Question(question.text, question.questionType, question.answers, newUserAnswers)
         val newContext = context.polls(context.currentContextPoll).updateQuestions(newQuestion, id)
-        (s"Ok: ${context.currentContextPoll} answer on question №$id accepted",
+        (s"Ok: answer in poll №${context.currentContextPoll} on question №$id accepted",
           PollRepo(context.polls + (context.currentContextPoll -> newContext), context.currentContextPoll))
       }
     }

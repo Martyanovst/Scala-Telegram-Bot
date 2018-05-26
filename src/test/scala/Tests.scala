@@ -289,14 +289,9 @@ class Tests extends FlatSpec with Matchers {
     val (_, context) = Begin(id) execute ctx
     val (_, repo) = AddQuestion("Who are you?", Question.open, Array.empty) execute context
     val (_, rep) = StartPoll(id) execute repo
-    val (message, newRepo) = AnswerOnQuestion(username, 2, "smt") execute rep
+    val (message, _) = AnswerOnQuestion(username, 2, "smt") execute rep
     assertResult("Error: Question №2 doesn't exist")(message)
   }
-
-  "AnswerOnQuestion" should "return error, if question  " in {
-
-  }
-
   "AnswerOnQuestion" should "accept answer, if question exist and user didn't aswer on it before" in {
     val (msg, ctx) = CreatePoll("HI") execute PollRepo()
     val username = "Kakashi"
@@ -305,10 +300,58 @@ class Tests extends FlatSpec with Matchers {
     val (_, repo) = AddQuestion("Who are you?", Question.open, Array.empty) execute context
     val (_, rep) = StartPoll(id) execute repo
     val (message, _) = AnswerOnQuestion(username, 1, "smt") execute rep
-    assertResult(s"Ok: $id answer on question №1 accepted")(message)
+    assertResult(s"Ok: answer in poll №$id on question №1 accepted")(message)
   }
 
-  "AnswerOnQuestin" should "" in {
+  "AnswerOnQuestion" should "return error, if question type is choise and answer is not digit" in {
+    val (msg, ctx) = CreatePoll("HI") execute PollRepo()
+    val username = "Kakashi"
+    val id = msg.split(":")(1).trim.toInt
+    val (_, context) = Begin(id) execute ctx
+    val (_, repo) = AddQuestion("Who are you?", Question.choice, Array.empty) execute context
+    val (_, rep) = StartPoll(id) execute repo
+    val (message, _) = AnswerOnQuestion(username, 1, "smt") execute rep
+    assertResult("Error: Question type is choise but answer isn't digit")(message)
+  }
 
+  "AnswerOnQuestion" should "return error, if question type is multi and answer is not sequence of digits" in {
+    val (msg, ctx) = CreatePoll("HI") execute PollRepo()
+    val username = "Kakashi"
+    val id = msg.split(":")(1).trim.toInt
+    val (_, context) = Begin(id) execute ctx
+    val (_, repo) = AddQuestion("Who are you?", Question.multi, Array.empty) execute context
+    val (_, rep) = StartPoll(id) execute repo
+    val (message, _) = AnswerOnQuestion(username, 1, "smt") execute rep
+    assertResult("Error: Question type is multi but answer isn't sequence digit")(message)
+  }
+  "AnswerOnQuestion" should "return error, if question type is multi and some digits in answer are the same" in {
+    val (msg, ctx) = CreatePoll("HI") execute PollRepo()
+    val username = "Kakashi"
+    val id = msg.split(":")(1).trim.toInt
+    val (_, context) = Begin(id) execute ctx
+    val (_, repo) = AddQuestion("Who are you?", Question.multi, Array.empty) execute context
+    val (_, rep) = StartPoll(id) execute repo
+    val (message, _) = AnswerOnQuestion(username, 1, "1 1 2") execute rep
+    assertResult("Error: Question type is multi but some digits in answer are the same")(message)
+  }
+  "AnswerOnQuestion" should "accept answer, if question type is choice and answer is digit" in {
+    val (msg, ctx) = CreatePoll("HI") execute PollRepo()
+    val username = "Kakashi"
+    val id = msg.split(":")(1).trim.toInt
+    val (_, context) = Begin(id) execute ctx
+    val (_, repo) = AddQuestion("Who are you?", Question.multi, Array.empty) execute context
+    val (_, rep) = StartPoll(id) execute repo
+    val (message, _) = AnswerOnQuestion(username, 1, "1 1 2") execute rep
+    assertResult(s"Ok: answer in poll №$id on question №1 accepted")(message)
+  }
+  "AnswerOnQuestion" should "accetp answer, if question type is multi and answer is sequence of different digts" in {
+    val (msg, ctx) = CreatePoll("HI") execute PollRepo()
+    val username = "Kakashi"
+    val id = msg.split(":")(1).trim.toInt
+    val (_, context) = Begin(id) execute ctx
+    val (_, repo) = AddQuestion("Who are you?", Question.multi, Array.empty) execute context
+    val (_, rep) = StartPoll(id) execute repo
+    val (message, _) = AnswerOnQuestion(username, 1, "1 2 3") execute rep
+    assertResult(s"Ok: answer in poll №$id on question №1 accepted")(message)
   }
 }
