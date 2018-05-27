@@ -74,6 +74,17 @@ class Tests extends FlatSpec with Matchers {
     assertResult("Error: Poll is finished")(message)
   }
 
+  "Start Poll" should "stop poll after start" in {
+    val (msg, ctx) = CreatePoll("HI") execute PollRepo()
+    val id = msg.split(":")(1).trim.toInt
+    val (messageStart, context) = StartPoll(id) execute ctx
+    messageStart shouldBe "Ok: The poll was launched"
+    context.polls(id).running shouldBe Some(true)
+    val (messageStop, repo) = StopPoll(id) execute context
+    messageStop shouldBe "Ok: The poll is over"
+    repo.polls(id).running shouldBe Some(false)
+  }
+
   "Stop Poll" should "not stop poll, when it doesn't running" in {
     val (msg, ctx) = CreatePoll("HI") execute PollRepo()
     val (message, _) = StopPoll(msg.split(":")(1).trim.toInt) execute ctx
@@ -129,7 +140,7 @@ class Tests extends FlatSpec with Matchers {
     assertResult("Error: This poll doesn't exist")(message)
   }
 
-  "Poll Repo" should "switch off the context, when repo exists this id" in {
+  "End" should "switch off the context, when repo exists this id" in {
     val (msg, ctx1) = CreatePoll("HI") execute PollRepo()
     val id = msg.split(":")(1).trim.toInt
     val (_, ctx2) = Begin(id) execute ctx1
@@ -138,7 +149,7 @@ class Tests extends FlatSpec with Matchers {
     assertResult(repo.currentContextPoll)(-1)
   }
 
-  "Poll Repo" should "not switch off the context, when repo isn't in context mode" in {
+  "End" should "not switch off the context, when repo isn't in context mode" in {
     val repo = PollRepo()
     assertResult(repo.currentContextPoll)(-1)
     val (message, actualRepo) = End() execute repo
@@ -146,7 +157,7 @@ class Tests extends FlatSpec with Matchers {
     assertResult(actualRepo.currentContextPoll)(-1)
   }
 
-  "Poll Repo" should "show poll information, when repo is in context mode" in {
+  "View" should "show poll information, when repo is in context mode" in {
     val (msg, ctx) = CreatePoll("HI") execute PollRepo()
     val id = msg.split(":")(1).trim.toInt
     val (_, repo) = Begin(id) execute ctx
