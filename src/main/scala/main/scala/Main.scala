@@ -6,7 +6,7 @@ import scala.io.Source
 
 
 //class MyBot extends TelegramBot with Polling with Commands{
-//  override def token = "499150688:AAHcHDrlzM_MGLEm5s9p5JrsdQy2stqd3TY"
+//  override def token = "token"
 //  onCommand("help"){
 //  }
 //  onCommand("delete"){}
