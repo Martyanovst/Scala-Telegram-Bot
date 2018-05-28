@@ -1,3 +1,4 @@
+import info.mukel.telegrambot4s.models.User
 import main.scala._
 import org.scalatest.{FlatSpec, Matchers}
 
@@ -6,13 +7,13 @@ class Tests extends FlatSpec with Matchers {
 
   "After initialization poll repo's map" should "be empty" in assert(PollRepo().polls.isEmpty)
 
-  "After Initialization poll repo's context id" should "be zero" in assertResult(-1) (PollRepo().currentContextPoll)
+  "After Initialization poll repo's context id" should "be zero" in assertResult(-1)(PollRepo().currentContextPoll)
 
 
   "Poll repo" should "contains new poll after create poll" in {
     val (_, actual) = CreatePoll("test") execute PollRepo()
     assert(actual.polls.nonEmpty)
-    assertResult("test")(actual.polls(1).getName)
+    assertResult("test")(actual.polls(1).name)
   }
 
   "When poll repo is empty Listing" should "be empty" in {
@@ -266,111 +267,112 @@ class Tests extends FlatSpec with Matchers {
 
   "AnswerOnQuestion" should "return error, context mode hasn't started" in {
     val (_, ctx) = CreatePoll("HI") execute PollRepo()
-    val username = "Orochimaru"
-    val (message, _) = AnswerOnQuestion(username, 1, "smt") execute ctx
+    val username = User(1, isBot = false, "Orochimaru")
+    val (message, _) = AnswerTheQuestion(1, "smt", user = Some(username)) execute ctx
     assertResult("Error: Context mode turned off")(message)
   }
 
   "AnswerOnQuestion" should "return error, if poll wasn't started" in {
-    val (msg, ctx) = CreatePoll("HI") execute PollRepo()
-    val username = "Sakura"
+    val username = User(1, isBot = false, "Sakura")
+    val (msg, ctx) = CreatePoll("HI", user = Some(username)) execute PollRepo()
     val id = msg.split(":")(1).trim.toInt
     val (_, context) = Begin(id) execute ctx
-    val (_, repo) = AddQuestion("Who are you?", Question.open, Array.empty) execute context
-    val (message, r) = AnswerOnQuestion(username, 1, "smt") execute repo
+    val (_, repo) = AddQuestion("Who are you?", Question.open, Array.empty, user = Some(username)) execute context
+    val (message, r) = AnswerTheQuestion(1, "smt", Some(username)) execute repo
     assertResult("Error: can't answer the question if poll wasn't started")(message)
     r.polls(r.currentContextPoll).questions(1).usersAnswers shouldBe Map()
   }
 
   "AnswerOnQuestion" should "return error, if user answered the question before" in {
-    val (msg, ctx) = CreatePoll("HI") execute PollRepo()
-    val username = "Sasuke"
+    val username = User(1, isBot = false, "Sasuke")
+    val (msg, ctx) = CreatePoll("HI", user = Some(username)) execute PollRepo()
     val id = msg.split(":")(1).trim.toInt
     val (_, context) = Begin(id) execute ctx
-    val (_, repo) = AddQuestion("Who are you?", Question.open, Array.empty) execute context
-    val (_, rep) = StartPoll(id) execute repo
-    val (ms, re) = AnswerOnQuestion(username, 1, "smt") execute rep
-    val (message, newRepo) = AnswerOnQuestion(username, 1, "smt") execute re
+    val (_, repo) = AddQuestion("Who are you?", Question.open, Array.empty, user = Some(username)) execute context
+    val (_, rep) = StartPoll(id, user = Some(username)) execute repo
+    val (ms, re) = AnswerTheQuestion(1, "smt", Some(username)) execute rep
+    val (message, newRepo) = AnswerTheQuestion(1, "smt", Some(username)) execute re
     newRepo.polls(newRepo.currentContextPoll).questions(1).usersAnswers shouldBe Map("Sasuke" -> "smt")
     assertResult(s"Ok: answer in poll №$id on question №1 accepted")(ms)
     assertResult("Error: User already answered the question №1")(message)
   }
 
   "AnswerOnQuestion" should "return error, if question id doesn't exist" in {
-    val (msg, ctx) = CreatePoll("HI") execute PollRepo()
-    val username = "Naruto"
+    val username = User(1, isBot = false, "Sakura")
+    val (msg, ctx) = CreatePoll("HI", user = Some(username)) execute PollRepo()
     val id = msg.split(":")(1).trim.toInt
     val (_, context) = Begin(id) execute ctx
-    val (_, re) = AddQuestion("Who are you?", Question.open, Array.empty) execute context
+    val (_, re) = AddQuestion("Who are you?", Question.open, Array.empty, user = Some(username)) execute context
     val (_, rep) = StartPoll(id) execute re
-    val (message, repo) = AnswerOnQuestion(username, 2, "smt") execute rep
+    val (message, repo) = AnswerTheQuestion(2, "smt", Some(username)) execute rep
     assertResult("Error: Question №2 doesn't exist")(message)
     repo.polls(repo.currentContextPoll).questions(1).usersAnswers should have size 0
     repo.polls(repo.currentContextPoll).questions should have size 1
   }
 
   "AnswerOnQuestion" should "accept answer, if question exist and user didn't aswer on it before" in {
-    val (msg, ctx) = CreatePoll("HI") execute PollRepo()
-    val username = "Kakashi"
+    val username = User(1, isBot = false, "Sakura")
+    val (msg, ctx) = CreatePoll("HI", user = Some(username)) execute PollRepo()
     val id = msg.split(":")(1).trim.toInt
     val (_, context) = Begin(id) execute ctx
-    val (_, repo) = AddQuestion("Who are you?", Question.open, Array.empty) execute context
-    val (_, rep) = StartPoll(id) execute repo
-    val (message, _) = AnswerOnQuestion(username, 1, "smt") execute rep
+    val (_, repo) = AddQuestion("Who are you?", Question.open, Array.empty, Some(username)) execute context
+    val (_, rep) = StartPoll(id, Some(username)) execute repo
+    val (message, _) = AnswerTheQuestion(1, "smt", Some(username)) execute rep
     assertResult(s"Ok: answer in poll №$id on question №1 accepted")(message)
   }
 
   "AnswerOnQuestion" should "return error, if question type is choise and answer is not digit" in {
-    val (msg, ctx) = CreatePoll("HI") execute PollRepo()
-    val username = "Girajya"
+    val username = User(1, isBot = false, "Sakura")
+    val (msg, ctx) = CreatePoll("HI", user = Some(username)) execute PollRepo()
     val id = msg.split(":")(1).trim.toInt
     val (_, context) = Begin(id) execute ctx
-    val (_, repo) = AddQuestion("Who are you?", Question.choice, Array("1","2","3")) execute context
-    val (_, rep) = StartPoll(id) execute repo
-    val (message, _) = AnswerOnQuestion(username, 1, "smt") execute rep
+    val (_, repo) = AddQuestion("Who are you?", Question.choice, Array("1", "2", "3"),Some(username)) execute context
+    val (_, rep) = StartPoll(id,Some(username)) execute repo
+    val (message, _) = AnswerTheQuestion(1, "smt", Some(username)) execute rep
     assertResult("Error: Question type is choise but answer isn't digit")(message)
   }
 
   "AnswerOnQuestion" should "return error, if question type is multi and answer is not sequence of digits" in {
-    val (msg, ctx) = CreatePoll("HI") execute PollRepo()
-    val username = "Orochimaru"
+    val username = User(1, isBot = false, "Sakura")
+    val (msg, ctx) = CreatePoll("HI", user = Some(username)) execute PollRepo()
     val id = msg.split(":")(1).trim.toInt
     val (_, context) = Begin(id) execute ctx
-    val (_, repo) = AddQuestion("Who are you?", Question.multi, Array("adf","2","3")) execute context
-    val (_, rep) = StartPoll(id) execute repo
-    val (message, _) = AnswerOnQuestion(username, 1, "smt") execute rep
+    val (_, repo) = AddQuestion("Who are you?", Question.multi, Array("adf", "2", "3"),Some(username)) execute context
+    val (_, rep) = StartPoll(id,Some(username)) execute repo
+    val (message, _) = AnswerTheQuestion(1, "smt", Some(username)) execute rep
     assertResult("Error: Question type is multi but answer isn't sequence of digits")(message)
   }
 
   "AnswerOnQuestion" should "return error, if question type is multi and some digits in answer are the same" in {
-    val (msg, ctx) = CreatePoll("HI") execute PollRepo()
-    val username = "Kakashi"
+    val username = User(1, isBot = false, "Sakura")
+    val (msg, ctx) = CreatePoll("HI", user = Some(username)) execute PollRepo()
     val id = msg.split(":")(1).trim.toInt
     val (_, context) = Begin(id) execute ctx
-    val (_, repo) = AddQuestion("Who are you?", Question.multi, Array("1","2","3")) execute context
-    val (_, rep) = StartPoll(id) execute repo
-    val (message, _) = AnswerOnQuestion(username, 1, "1 1 2") execute rep
+    val (_, repo) = AddQuestion("Who are you?", Question.multi, Array("1", "2", "3"),Some(username)) execute context
+    val (_, rep) = StartPoll(id,Some(username)) execute repo
+    val (message, _) = AnswerTheQuestion(1, "1 1 2", Some(username)) execute rep
     assertResult("Error: Question type is multi but some digits in answer are the same")(message)
   }
 
   "AnswerOnQuestion" should "accept answer, if question type is choice and answer is digit" in {
-    val (msg, ctx) = CreatePoll("HI") execute PollRepo()
-    val username = "Kakashi"
+    val username = User(1, isBot = false, "Sakura")
+    val (msg, ctx) = CreatePoll("HI", user = Some(username)) execute PollRepo()
     val id = msg.split(":")(1).trim.toInt
     val (_, context) = Begin(id) execute ctx
-    val (_, repo) = AddQuestion("Who are you?", Question.multi, Array("1","2","3")) execute context
-    val (_, rep) = StartPoll(id) execute repo
-    val (message, _) = AnswerOnQuestion(username, 1, "1 1 2") execute rep
+    val (_, repo) = AddQuestion("Who are you?", Question.multi, Array("1", "2", "3"),Some(username)) execute context
+    val (_, rep) = StartPoll(id,Some(username)) execute repo
+    val (message, _) = AnswerTheQuestion(1, "1 1 2", Some(username)) execute rep
     assertResult("Error: Question type is multi but some digits in answer are the same")(message)
   }
+
   "AnswerOnQuestion" should "accetp answer, if question type is multi and answer is sequence of different digts" in {
-    val (msg, ctx) = CreatePoll("HI") execute PollRepo()
-    val username = "Kakashi"
+    val username = User(1, isBot = false, "Sakura")
+    val (msg, ctx) = CreatePoll("HI", user = Some(username)) execute PollRepo()
     val id = msg.split(":")(1).trim.toInt
     val (_, context) = Begin(id) execute ctx
-    val (_, repo) = AddQuestion("Who are you?", Question.multi, Array("1","2","3")) execute context
-    val (_, rep) = StartPoll(id) execute repo
-    val (message, _) = AnswerOnQuestion(username, 1, "1 2 3") execute rep
+    val (_, repo) = AddQuestion("Who are you?", Question.multi, Array("1", "2", "3"),Some(username)) execute context
+    val (_, rep) = StartPoll(id,Some(username)) execute repo
+    val (message, _) = AnswerTheQuestion(1, "1 2 3", Some(username)) execute rep
     assertResult(s"Ok: answer in poll №$id on question №1 accepted")(message)
   }
 }

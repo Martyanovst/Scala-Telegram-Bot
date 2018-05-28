@@ -1,36 +1,46 @@
 package main.scala
 
-import Poll.now
+import info.mukel.telegrambot4s.models.User
 
 import scala.util.Try
 
-case class Begin(id: Int) extends Command {
+case class Begin(id: Int, override val user: Option[User] = None) extends Command {
   override def execute: PollRepo => (String, PollRepo) = context =>
     if (!context.polls.contains(id))
       ("Error: This poll doesn't exist", context)
+
     else
       (s"Ok: switch to poll with number $id", PollRepo(context.polls, id))
+
+  override def auth(user: Option[User]) = Begin(id, user)
 }
 
-case class End() extends Command {
+case class End(override val user: Option[User] = None) extends Command {
   override def execute: PollRepo => (String, PollRepo) = context =>
     if (context.currentContextPoll == -1)
       ("Error: The context is already switched off", context)
     else
       (s"Ok: switch off the context", PollRepo(context.polls, -1))
+
+  override def auth(user: Option[User]) = End(user)
 }
 
-case class View() extends Command {
+case class View(override val user: Option[User] = None) extends Command {
   override def execute: PollRepo => (String, PollRepo) = context =>
     if (context.currentContextPoll == -1)
       ("Error: You should select poll to watch the results", context)
     else
       ("Ok\n" + context.polls(context.currentContextPoll).toString, context)
+
+  override def auth(user: Option[User]) = View(user)
 }
 
-case class AddQuestion(name: String, questionType: Question.Value, answers: Array[String]) extends Command {
+case class AddQuestion(name: String, questionType: Question.Value, answers: Array[String],
+                       override val user: Option[User] = None) extends Command {
   override def execute: PollRepo => (String, PollRepo) = context => {
     if (context.currentContextPoll == -1) ("Error: you should select poll to add questions", context)
+    else if (!context.validation(user, context.currentContextPoll))
+      (s"Error: Permission denied!", context)
     else if (context.polls(context.currentContextPoll).running.getOrElse(false))
       ("Error: Can't change poll when it's running", context)
     else {
@@ -50,12 +60,16 @@ case class AddQuestion(name: String, questionType: Question.Value, answers: Arra
       }
     }
   }
+
+  override def auth(user: Option[User]) = AddQuestion(name, questionType, answers, user)
 }
 
-case class DeleteQuestion(id: Int) extends Command {
+case class DeleteQuestion(id: Int, override val user: Option[User] = None) extends Command {
   override def execute: PollRepo => (String, PollRepo) = context => {
     if (context.currentContextPoll == -1)
       ("Error: Context mode turned off", context)
+    else if (!context.validation(user, context.currentContextPoll))
+      (s"Error: Permission denied!", context)
     else if (context.polls(context.currentContextPoll).running.getOrElse(false))
       ("Error: can't change poll when it's running", context)
     else if (!context.polls(context.currentContextPoll).questions.contains(id))
@@ -65,12 +79,18 @@ case class DeleteQuestion(id: Int) extends Command {
       (s"Ok: ${context.currentContextPoll} delete question", context % newContext)
     }
   }
+
+  override def auth(user: Option[User]) = DeleteQuestion(id, user)
 }
 
-case class AnswerOnQuestion(username: String, id: Int, answer: String) extends Command {
+case class AnswerTheQuestion(id: Int, answer: String,
+                             override val user: Option[User] = None) extends Command {
   override def execute: PollRepo => (String, PollRepo) = context => {
+    val username = user.getOrElse(defaultUser).firstName
     if (context.currentContextPoll == -1)
       ("Error: Context mode turned off", context)
+    else if (!context.validation(user, context.currentContextPoll))
+      (s"Error: Permission denied!", context)
     else {
       if (!context.polls(context.currentContextPoll).questions.contains(id))
         (s"Error: Question №$id doesn't exist", context)
@@ -104,5 +124,9 @@ case class AnswerOnQuestion(username: String, id: Int, answer: String) extends C
       }
     }
   }
+
+  override def auth(user: Option[User]) = AnswerTheQuestion(id, answer, user)
+
+  val defaultUser: User = User(-1, isBot = false, "default")
 }
 
