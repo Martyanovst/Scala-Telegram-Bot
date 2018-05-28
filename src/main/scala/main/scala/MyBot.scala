@@ -13,15 +13,7 @@ object MyBot extends TelegramBot with Polling with Commands {
 
   onCommand('create_poll) { implicit msg =>
     withArgs {
-      args => {
-        val command = parser.parse(parser.createPoll, join("/create_poll", args))
-        if (command.isEmpty) reply(processCommand(IncorrectCommand("incorrect command")))
-        else {
-          val (message, repo) = command.get execute context
-          context = repo
-          reply(message)
-        }
-      }
+      args => reply(processRequest(join("/create_poll", args), msg.from))
     }
   }
 
