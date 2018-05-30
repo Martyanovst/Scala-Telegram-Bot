@@ -276,7 +276,7 @@ class Tests extends FlatSpec with Matchers {
     val username = User(1, isBot = false, "Sakura")
     val (msg, ctx) = CreatePoll("HI", user = Some(username)) execute PollRepo()
     val id = msg.split(":")(1).trim.toInt
-    val (_, context) = Begin(id) execute ctx
+    val (_, context) = Begin(id, user = Some(username)) execute ctx
     val (_, repo) = AddQuestion("Who are you?", Question.open, Array.empty, user = Some(username)) execute context
     val (message, r) = AnswerTheQuestion(1, "smt", Some(username)) execute repo
     assertResult("Error: can't answer the question if poll wasn't started")(message)
@@ -287,7 +287,7 @@ class Tests extends FlatSpec with Matchers {
     val username = User(1, isBot = false, "Sasuke")
     val (msg, ctx) = CreatePoll("HI", user = Some(username)) execute PollRepo()
     val id = msg.split(":")(1).trim.toInt
-    val (_, context) = Begin(id) execute ctx
+    val (_, context) = Begin(id,user = Some(username)) execute ctx
     val (_, repo) = AddQuestion("Who are you?", Question.open, Array.empty, user = Some(username)) execute context
     val (_, rep) = StartPoll(id, user = Some(username)) execute repo
     val (ms, re) = AnswerTheQuestion(1, "smt", Some(username)) execute rep
@@ -301,9 +301,9 @@ class Tests extends FlatSpec with Matchers {
     val username = User(1, isBot = false, "Sakura")
     val (msg, ctx) = CreatePoll("HI", user = Some(username)) execute PollRepo()
     val id = msg.split(":")(1).trim.toInt
-    val (_, context) = Begin(id) execute ctx
+    val (_, context) = Begin(id,user = Some(username)) execute ctx
     val (_, re) = AddQuestion("Who are you?", Question.open, Array.empty, user = Some(username)) execute context
-    val (_, rep) = StartPoll(id) execute re
+    val (_, rep) = StartPoll(id,user = Some(username)) execute re
     val (message, repo) = AnswerTheQuestion(2, "smt", Some(username)) execute rep
     assertResult("Error: Question №2 doesn't exist")(message)
     repo.polls(repo.currentContextPoll).questions(1).usersAnswers should have size 0
@@ -314,31 +314,31 @@ class Tests extends FlatSpec with Matchers {
     val username = User(1, isBot = false, "Sakura")
     val (msg, ctx) = CreatePoll("HI", user = Some(username)) execute PollRepo()
     val id = msg.split(":")(1).trim.toInt
-    val (_, context) = Begin(id) execute ctx
+    val (_, context) = Begin(id,user = Some(username)) execute ctx
     val (_, repo) = AddQuestion("Who are you?", Question.open, Array.empty, Some(username)) execute context
     val (_, rep) = StartPoll(id, Some(username)) execute repo
     val (message, _) = AnswerTheQuestion(1, "smt", Some(username)) execute rep
     assertResult(s"Ok: answer in poll №$id on question №1 accepted")(message)
   }
 
-  "AnswerOnQuestion" should "return error, if question type is choise and answer is not digit" in {
+  "AnswerOnQuestion" should "return error, if question type is choice and answer is not digit" in {
     val username = User(1, isBot = false, "Sakura")
     val (msg, ctx) = CreatePoll("HI", user = Some(username)) execute PollRepo()
     val id = msg.split(":")(1).trim.toInt
-    val (_, context) = Begin(id) execute ctx
-    val (_, repo) = AddQuestion("Who are you?", Question.choice, Array("1", "2", "3"),Some(username)) execute context
-    val (_, rep) = StartPoll(id,Some(username)) execute repo
+    val (_, context) = Begin(id,user = Some(username)) execute ctx
+    val (_, repo) = AddQuestion("Who are you?", Question.choice, Array("1", "2", "3"), Some(username)) execute context
+    val (_, rep) = StartPoll(id, Some(username)) execute repo
     val (message, _) = AnswerTheQuestion(1, "smt", Some(username)) execute rep
-    assertResult("Error: Question type is choise but answer isn't digit")(message)
+    assertResult("Error: Question type is choice but answer isn't digit")(message)
   }
 
   "AnswerOnQuestion" should "return error, if question type is multi and answer is not sequence of digits" in {
     val username = User(1, isBot = false, "Sakura")
     val (msg, ctx) = CreatePoll("HI", user = Some(username)) execute PollRepo()
     val id = msg.split(":")(1).trim.toInt
-    val (_, context) = Begin(id) execute ctx
-    val (_, repo) = AddQuestion("Who are you?", Question.multi, Array("adf", "2", "3"),Some(username)) execute context
-    val (_, rep) = StartPoll(id,Some(username)) execute repo
+    val (_, context) = Begin(id,user = Some(username)) execute ctx
+    val (_, repo) = AddQuestion("Who are you?", Question.multi, Array("adf", "2", "3"), Some(username)) execute context
+    val (_, rep) = StartPoll(id, Some(username)) execute repo
     val (message, _) = AnswerTheQuestion(1, "smt", Some(username)) execute rep
     assertResult("Error: Question type is multi but answer isn't sequence of digits")(message)
   }
@@ -347,9 +347,9 @@ class Tests extends FlatSpec with Matchers {
     val username = User(1, isBot = false, "Sakura")
     val (msg, ctx) = CreatePoll("HI", user = Some(username)) execute PollRepo()
     val id = msg.split(":")(1).trim.toInt
-    val (_, context) = Begin(id) execute ctx
-    val (_, repo) = AddQuestion("Who are you?", Question.multi, Array("1", "2", "3"),Some(username)) execute context
-    val (_, rep) = StartPoll(id,Some(username)) execute repo
+    val (_, context) = Begin(id,user = Some(username)) execute ctx
+    val (_, repo) = AddQuestion("Who are you?", Question.multi, Array("1", "2", "3"), Some(username)) execute context
+    val (_, rep) = StartPoll(id, Some(username)) execute repo
     val (message, _) = AnswerTheQuestion(1, "1 1 2", Some(username)) execute rep
     assertResult("Error: Question type is multi but some digits in answer are the same")(message)
   }
@@ -358,20 +358,20 @@ class Tests extends FlatSpec with Matchers {
     val username = User(1, isBot = false, "Sakura")
     val (msg, ctx) = CreatePoll("HI", user = Some(username)) execute PollRepo()
     val id = msg.split(":")(1).trim.toInt
-    val (_, context) = Begin(id) execute ctx
-    val (_, repo) = AddQuestion("Who are you?", Question.multi, Array("1", "2", "3"),Some(username)) execute context
-    val (_, rep) = StartPoll(id,Some(username)) execute repo
+    val (_, context) = Begin(id,user = Some(username)) execute ctx
+    val (_, repo) = AddQuestion("Who are you?", Question.multi, Array("1", "2", "3"), Some(username)) execute context
+    val (_, rep) = StartPoll(id, Some(username)) execute repo
     val (message, _) = AnswerTheQuestion(1, "1 1 2", Some(username)) execute rep
     assertResult("Error: Question type is multi but some digits in answer are the same")(message)
   }
 
-  "AnswerOnQuestion" should "accetp answer, if question type is multi and answer is sequence of different digts" in {
+  "AnswerOnQuestion" should "accept answer, if question type is multi and answer is sequence of different digts" in {
     val username = User(1, isBot = false, "Sakura")
     val (msg, ctx) = CreatePoll("HI", user = Some(username)) execute PollRepo()
     val id = msg.split(":")(1).trim.toInt
-    val (_, context) = Begin(id) execute ctx
-    val (_, repo) = AddQuestion("Who are you?", Question.multi, Array("1", "2", "3"),Some(username)) execute context
-    val (_, rep) = StartPoll(id,Some(username)) execute repo
+    val (_, context) = Begin(id,user = Some(username)) execute ctx
+    val (_, repo) = AddQuestion("Who are you?", Question.multi, Array("1", "2", "3"), Some(username)) execute context
+    val (_, rep) = StartPoll(id, Some(username)) execute repo
     val (message, _) = AnswerTheQuestion(1, "1 2 3", Some(username)) execute rep
     assertResult(s"Ok: answer in poll №$id on question №1 accepted")(message)
   }

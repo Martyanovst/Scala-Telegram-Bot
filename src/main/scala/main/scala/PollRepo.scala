@@ -3,7 +3,6 @@ package main.scala
 import java.util.Date
 import java.util.Calendar
 
-import Poll.now
 import info.mukel.telegrambot4s.models.User
 
 import scala.util.Try
@@ -27,22 +26,20 @@ class Poll(
           ) {
 
 
-  val questionNumberGenerator = Stream.from(1).toIterator
-
-  val running: Option[Boolean] = {
+  def running: Option[Boolean] = {
     if (end.isDefined)
-      for {x <- begin; y <- end} yield (now after x) && (now before y)
-    else for (x <- begin) yield (now after x) || (now equals x)
+      for {x <- begin; y <- end} yield (Poll.now() after x) && (Poll.now() before y)
+    else for (x <- begin) yield (Poll.now() after x) || (Poll.now() equals x)
   }
 
   def isAdmin(user: Option[User]): Boolean = user == creator
 
   def timeIsNotOver: Option[Boolean] = {
     for (x <- begin; y <- end)
-      yield (now after x) && (now before y)
+      yield (Poll.now() after x) && (Poll.now() before y)
   }
 
-  def start = new Poll(creator, id, name, isAnonymous, isAfterstop, Some(now), end, questions)
+  def start = new Poll(creator, id, name, isAnonymous, isAfterstop, Some(Poll.now()), end, questions)
 
   def showResult: String = {
     if (running.getOrElse(false) && timeIsNotOver.getOrElse(false) && isAfterstop)
@@ -51,12 +48,12 @@ class Poll(
       "Ok\n" + this.toString + questions.mkString("\n")
   }
 
-  def stop = new Poll(creator, id, name, isAnonymous, isAfterstop, begin, Some(now), questions)
+  def stop = new Poll(creator, id, name, isAnonymous, isAfterstop, begin, Some(Poll.now()), questions)
 
   def deleteQuestion(idQ: Integer): Poll = new Poll(creator, id, name, isAnonymous, isAfterstop, begin, end, questions - idQ)
 
   def addQuestion(question: Question): Poll = new Poll(creator, id, name, isAnonymous, isAfterstop, begin, end,
-    questions + (questionNumberGenerator.next() -> question))
+    questions + (questions.size + 1 -> question))
 
 
   def updateQuestions(question: Question, idq: Int) = new Poll(creator, id, name, isAnonymous, isAfterstop, begin, end,
@@ -66,10 +63,10 @@ class Poll(
 
   override def toString = {
     s"""Poll name : $name
-        Created by : $creator
+        Created by : ${creator.getOrElse(User(1, isBot = false, "user")).firstName}
         Poll id : $id
         Anonymous : $isAnonymous
-        Show result : $isAfterstop
+        Show result : ${!isAfterstop}
         Start : ${
       begin.getOrElse("indefined")
     }
@@ -79,13 +76,19 @@ class Poll(
         Is running : ${
       if (running.getOrElse(false)) "Yes" else "No"
     }
+        Questions :\n $getQuestions
       """
+  }
+
+  def getQuestions: String = {
+    if (isAfterstop && running.getOrElse(true))
+      "Result's will be available after the end"
+    else questions.map(x => x._1.toString + ": " + x._2.toString(isAnonymous)).mkString("\n")
   }
 }
 
 object Poll {
-  val calendar = Calendar.getInstance()
   val dateParser = new java.text.SimpleDateFormat("hh:mm:ss yy:MM:dd")
 
-  def now: Date = dateParser.parse(dateParser.format(calendar.getTime))
+  def now(): Date = dateParser.parse(dateParser.format(Calendar.getInstance().getTime))
 }

@@ -8,7 +8,8 @@ case class Begin(id: Int, override val user: Option[User] = None) extends Comman
   override def execute: PollRepo => (String, PollRepo) = context =>
     if (!context.polls.contains(id))
       ("Error: This poll doesn't exist", context)
-
+    else if (!context.validation(user, id))
+    ("Error: permission denied!", context)
     else
       (s"Ok: switch to poll with number $id", PollRepo(context.polls, id))
 
@@ -19,6 +20,8 @@ case class End(override val user: Option[User] = None) extends Command {
   override def execute: PollRepo => (String, PollRepo) = context =>
     if (context.currentContextPoll == -1)
       ("Error: The context is already switched off", context)
+    else if (!context.validation(user, context.currentContextPoll))
+    ("Error: permission denied!", context)
     else
       (s"Ok: switch off the context", PollRepo(context.polls, -1))
 
@@ -89,8 +92,6 @@ case class AnswerTheQuestion(id: Int, answer: String,
     val username = user.getOrElse(defaultUser).firstName
     if (context.currentContextPoll == -1)
       ("Error: Context mode turned off", context)
-    else if (!context.validation(user, context.currentContextPoll))
-      (s"Error: Permission denied!", context)
     else {
       if (!context.polls(context.currentContextPoll).questions.contains(id))
         (s"Error: Question №$id doesn't exist", context)
@@ -98,10 +99,10 @@ case class AnswerTheQuestion(id: Int, answer: String,
         val question = context.polls(context.currentContextPoll).questions(id)
         if (!context.polls(context.currentContextPoll).running.getOrElse(false))
           ("Error: can't answer the question if poll wasn't started", context)
-        else if (context.polls(context.currentContextPoll).questions(id).usersAnswers.contains(username))
+        else if (question.usersAnswers.contains(username))
           (s"Error: User already answered the question №$id", context)
         else if (question.questionType == Question.choice && Try(answer.toInt).isFailure)
-          ("Error: Question type is choise but answer isn't digit", context)
+          ("Error: Question type is choice but answer isn't digit", context)
         else if (question.questionType == Question.multi) {
           val arr = answer.split(" ")
           if (arr.exists(x => Try(x.toInt).isFailure))
@@ -112,14 +113,14 @@ case class AnswerTheQuestion(id: Int, answer: String,
             val newUserAnswers = question.usersAnswers + (username -> answer)
             val newQuestion = Question(question.text, question.questionType, question.answers, newUserAnswers)
             val newContext = context.polls(context.currentContextPoll).updateQuestions(newQuestion, id)
-            (s"Ok: answer in poll №${context.currentContextPoll} on question №1 accepted", context % newContext)
+            (s"Ok: answer in poll №${context.currentContextPoll} on question №$id accepted", context % newContext)
           }
         }
         else {
           val newUserAnswers = question.usersAnswers + (username -> answer)
           val newQuestion = Question(question.text, question.questionType, question.answers, newUserAnswers)
           val newContext = context.polls(context.currentContextPoll).updateQuestions(newQuestion, id)
-          (s"Ok: answer in poll №${context.currentContextPoll} on question №1 accepted", context % newContext)
+          (s"Ok: answer in poll №${context.currentContextPoll} on question №$id accepted", context % newContext)
         }
       }
     }

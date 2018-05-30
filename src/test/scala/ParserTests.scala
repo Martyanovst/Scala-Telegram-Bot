@@ -10,34 +10,33 @@ class ParserTests extends FunSpec with Matchers {
   val dateParser = new SimpleDateFormat("hh:mm:ss yy:MM:dd")
   val parser = new CommandParser()
 
-  describe("CommandParser") {
-    it("should parse create poll command with specified time") {
-      val query = "/create_poll (CreatePoll)(yes)(afterstop)(22.22.22 1.1.18) (22.22.23 1.1.18)"
-      val startTime = "22.22.22 1.1.18"
-      val endTime = "22.22.23 1.1.18"
-      val start = Try(dateParser.parse(startTime)).toOption
-      val end = Try(dateParser.parse(endTime)).toOption
-      val command = CreatePoll("CreatePoll", isAnonymous = true, isAfterStop = true, start, end)
-      assertResult(command)(parser.parse(parser.command, query).get)
-    }
 
-    it("should parse create poll without time") {
-      val query = "/create_poll (SomeName) (no) (afterstop)"
-      val start = Try(dateParser.parse("")).toOption
-      val end = Try(dateParser.parse("")).toOption
-      val command = CreatePoll("SomeName", isAnonymous = false, isAfterStop = true, start, end)
-      assertResult(command)(parser.parse(parser.command, query).get)
-    }
+  it("should parse create poll command with specified time") {
+    val query = "/create_poll (CreatePoll)(yes)(afterstop)(22.22.22 1.1.18) (22.22.23 1.1.18)"
+    val startTime = "22.22.22 1.1.18"
+    val endTime = "22.22.23 1.1.18"
+    val start = Try(dateParser.parse(startTime)).toOption
+    val end = Try(dateParser.parse(endTime)).toOption
+    val command = CreatePoll("CreatePoll", isAnonymous = true, isAfterStop = true, start, end)
+    assertResult(command)(parser.parse(parser.command, query).get)
+  }
 
-    it("should parse appending question with multiple choices") {
-      val query = "/add_question (Question)(multi)\none\ntwo\nthree\n"
-      val answers = Array("one", "two", "three")
-      val command = AddQuestion("Question", Question.GetValue("multi"), answers)
-      val actual = parser.parse(parser.command, query).get.asInstanceOf[AddQuestion]
-      assertResult(command.name)(actual.name)
-      assertResult(command.questionType)(actual.questionType)
-      assertResult(command.answers)(actual.answers)
-    }
+  it("should parse create poll without time") {
+    val query = "/create_poll (SomeName) (no) (afterstop)"
+    val start = Try(dateParser.parse("")).toOption
+    val end = Try(dateParser.parse("")).toOption
+    val command = CreatePoll("SomeName", isAnonymous = false, isAfterStop = true, start, end)
+    assertResult(command)(parser.parse(parser.command, query).get)
+  }
+
+  it("should parse appending question with multiple choices") {
+    val query = "/add_question (Question)(multi)\none\ntwo\nthree\n"
+    val answers = Array("one", "two", "three")
+    val command = AddQuestion("Question", Question.GetValue("multi"), answers)
+    val actual = parser.parse(parser.command, query).get.asInstanceOf[AddQuestion]
+    assertResult(command.name)(actual.name)
+    assertResult(command.questionType)(actual.questionType)
+    assertResult(command.answers)(actual.answers)
   }
 
   it("should parse appending question without answers") {
@@ -68,9 +67,9 @@ class ParserTests extends FunSpec with Matchers {
     val list = "/list"
     val end = "/end"
     val view = "/view"
-    assert(parser.parse(parser.command, list).get.execute.equals(Listing().execute))
-    assert(parser.parse(parser.command, end).get.execute.equals(End().execute))
-    assert(parser.parse(parser.command, view).get.execute.equals(View().execute))
+    parser.parse(parser.command, list).get shouldBe Listing()
+    parser.parse(parser.command, end).get shouldBe End()
+    parser.parse(parser.command, view).get shouldBe View()
   }
 
   it("shouldn't parse wrong command") {
@@ -113,5 +112,15 @@ class ParserTests extends FunSpec with Matchers {
     val withoutId = "/delete_question"
     parser.parse(parser.command, badQuestionId).get shouldBe IncorrectCommand("incorrect command")
     parser.parse(parser.command, withoutId).get shouldBe IncorrectCommand("incorrect command")
+  }
+
+  it("should parse answer the question with good parameters") {
+    val raw = "/answer  2 (ha-ha)"
+    parser.parse(parser.command, raw).get shouldBe AnswerTheQuestion(2, "ha-ha")
+  }
+
+  it("shouldn't parse answer the question with incorrect parameters") {
+    val badQuestionId = "/answer  ha-ha (ha-ha)"
+    parser.parse(parser.command, badQuestionId).get shouldBe IncorrectCommand("incorrect command")
   }
 }

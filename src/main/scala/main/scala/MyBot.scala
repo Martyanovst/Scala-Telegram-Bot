@@ -1,8 +1,9 @@
 package main.scala
 
-import info.mukel.telegrambot4s.api.declarative.{Args, Commands}
+import info.mukel.telegrambot4s.api.declarative.Commands
 import info.mukel.telegrambot4s.api.{Polling, TelegramBot}
-import info.mukel.telegrambot4s.models.User
+import info.mukel.telegrambot4s.methods.SendMessage
+import info.mukel.telegrambot4s.models.Message
 
 
 object MyBot extends TelegramBot with Polling with Commands {
@@ -10,70 +11,13 @@ object MyBot extends TelegramBot with Polling with Commands {
   val parser = new CommandParser()
   var context = PollRepo()
 
-
-  onCommand('create_poll) { implicit msg =>
-    withArgs {
-      args => reply(processRequest(join("/create_poll", args), msg.from))
+  override def receiveMessage(msg: Message): Unit = {
+    for (text <- msg.text) {
+      val command = parser.parse(parser.command, text).get
+      val commandWithAuth = command.auth(msg.from)
+      val (message, ctx) = commandWithAuth execute context
+      context = ctx
+      request(SendMessage(msg.source, message))
     }
   }
-
-  onCommand('list) { implicit msg =>
-    reply(processRequest("/list", msg.from))
-  }
-
-  onCommand('delete_poll) { implicit msg =>
-    withArgs(args => reply(processRequest(join("/delete_poll", args), msg.from)))
-
-  }
-
-  onCommand('start_poll) { implicit msg =>
-    withArgs(args => reply(processRequest(join("/start_poll", args), msg.from)))
-  }
-
-  onCommand('stop_poll) { implicit msg =>
-    withArgs(args => reply(processRequest(join("/stop_poll", args), msg.from)))
-  }
-
-
-  onCommand('result) { implicit msg =>
-    withArgs(args => reply(processRequest("/result " + args.mkString(" "), msg.from)))
-  }
-
-  onCommand('begin) { implicit msg =>
-    withArgs(args => reply(processRequest(join("/begin", args), msg.from)))
-  }
-
-  onCommand('end) { implicit msg =>
-    withArgs(args => reply(processRequest(join("/end", args), msg.from)))
-  }
-
-  onCommand('view) { implicit msg =>
-    withArgs(args => reply(processRequest("/view " + args.mkString(" "), msg.from)))
-  }
-
-  onCommand('add_question) { implicit msg =>
-    withArgs(args => reply(processRequest(join("/add_question", args), msg.from)))
-  }
-
-  onCommand('delete_question) { implicit msg =>
-    withArgs(args => reply(processRequest(join("/delete_question", args), msg.from)))
-  }
-
-  onCommand('answer) { implicit msg =>
-    withArgs(args => reply(processRequest(join("/answer", args), msg.from)))
-  }
-
-  def processRequest(msg: String, user: Option[User]): String = processCommand(parseMessage(msg).auth(user))
-
-  def processCommand(command: Command): String = {
-    val (message, ctx) = command execute context
-    context = ctx
-    message
-  }
-
-  def parseMessage(msg: String): Command =
-    parser.parse(parser.command, msg).getOrElse(IncorrectCommand("incorrect command!"))
-
-  def join(command: String, args: Args): String =
-    Array(command, args).mkString(" ")
 }

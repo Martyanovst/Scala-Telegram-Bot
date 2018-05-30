@@ -8,7 +8,7 @@ import scala.util.parsing.combinator.RegexParsers
 class CommandParser extends RegexParsers {
   val dateParser = new java.text.SimpleDateFormat("hh:mm:ss yy:MM:dd")
 
-  def command: Parser[Command] = createPoll | simpleCommand | commandsWithoutArgs | add_question |
+  def command: Parser[Command] = createPoll | simpleCommand | commandsWithoutArgs | add_question | answer |
     success(IncorrectCommand("incorrect command"))
 
   def createPoll: Parser[Command] = "/create_poll" ~> anyWord ~ anonymous.? ~
@@ -74,5 +74,9 @@ class CommandParser extends RegexParsers {
 
   def anyWord: Parser[String] = "(" ~> "[^)]*".r <~ ")" ^^ {
     _.toString
+  }
+
+  def answer: Parser[Command] = "/answer" ~> "\\d+".r ~ anyWord ^^ {
+    case id ~ answ => AnswerTheQuestion(id.toInt, answ)
   }
 }
